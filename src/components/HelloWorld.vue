@@ -13,6 +13,7 @@ const count = ref(0)
       <img :src="heroImg" class="base" width="170" height="179" alt="" />
       <img :src="vueLogo" class="framework" alt="Vue logo" />
       <img :src="viteLogo" class="vite" alt="Vite logo" />
+      <a-button>按钮</a-button>
     </div>
     <div>
       <h1>Get started</h1>

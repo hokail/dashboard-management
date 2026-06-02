@@ -43,6 +43,44 @@ function connectWebSocket() {
               lastUpdate: Date.now()
             }
           }
+          const indexAbnormal = abnormalDevices.value.findIndex(d => d.id === update.id)
+          if(update.status === 'online' ) {
+            if (indexAbnormal !== -1) {
+              abnormalDevices.value.splice(index, 1)
+            }
+          }
+          else{
+            if(indexAbnormal === -1){
+              abnormalDevices.value.push({
+                ...update,
+                lastUpdate: Date.now()
+              })
+            }
+            abnormalDevices.value[indexAbnormal] = {
+              ...update,
+              lastUpdate: Date.now()
+            }
+          }
+
+
+          const indexFault = faultTableData.value.findIndex(d => d.id === update.id)
+          if(update.status === 'online'){
+            if (indexFault !== -1) {
+              faultTableData.value.splice(indexFault, 1)
+            }
+          }else {
+            if (indexFault === -1) {
+              faultTableData.value.push({
+                ...update,
+                lastUpdate: Date.now()
+              })
+            } else {
+              faultTableData.value[indexFault] = {
+                ...update,
+                lastUpdate: Date.now()
+              }
+            }
+          }
         })
         console.log('设备状态更新成功')
       }
@@ -134,7 +172,7 @@ const initStatusChart = () => {
           { value: deviceStatusData.value.online, name: '在线', itemStyle: { color: '#52c41a' } },
           { value: deviceStatusData.value.offline, name: '离线', itemStyle: { color: '#8c8c8c' } },
           { value: deviceStatusData.value.fault, name: '故障', itemStyle: { color: '#ff4d4f' } },
-          { value: deviceStatusData.value.standby, name: '待机', itemStyle: { color: '#faad14' } }
+          { value: deviceStatusData.value.warning, name: '警告', itemStyle: { color: '#faad14' } }
         ]
       }
     ]
@@ -195,8 +233,7 @@ const getStatusColor = (status) => {
     online: '#52c41a',
     offline: '#8c8c8c',
     fault: '#ff4d4f',
-    standby: '#faad14',
-    warning: '#faad14'
+    warning: '#faad14',
   }
   return colors[status] || '#8c8c8c'
 }
@@ -206,7 +243,6 @@ const getStatusText = (status) => {
     online: '运行',
     offline: '离线',
     fault: '故障',
-    standby: '待机',
     warning: '警告'
   }
   return texts[status] || '未知'
@@ -362,7 +398,7 @@ watch(workshopDevices,(newData) => {
             <div class="legend">
               <span class="legend-item"><span class="legend-dot online"></span>运行</span>
               <span class="legend-item"><span class="legend-dot fault"></span>故障</span>
-              <span class="legend-item"><span class="legend-dot standby"></span>待机</span>
+              <span class="legend-item"><span class="legend-dot warning"></span>警告</span>
               <span class="legend-item"><span class="legend-dot offline"></span>离线</span>
             </div>
           </div>
@@ -412,13 +448,13 @@ watch(workshopDevices,(newData) => {
         </div>
         <a-table
             :columns="[
-            { title: '设备编号', dataIndex: 'deviceId', key: 'deviceId', width: 100 },
-            { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName', width: 120 },
+            { title: '设备编号', dataIndex: 'id', key: 'deviceId', width: 100 },
+            { title: '设备名称', dataIndex: 'name', key: 'deviceName', width: 120 },
             { title: '故障代码', dataIndex: 'faultCode', key: 'faultCode', width: 100 },
             { title: '故障描述', dataIndex: 'faultDesc', key: 'faultDesc', ellipsis: true },
             { title: '位置', dataIndex: 'location', key: 'location', width: 100 },
             { title: '开始时间', dataIndex: 'startTime', key: 'startTime', width: 100 },
-            { title: '持续时间', dataIndex: 'duration', key: 'duration', width: 100 },
+            // { title: '持续时间', dataIndex: 'duration', key: 'duration', width: 100 },
             {
               title: '优先级',
               dataIndex: 'priority',
@@ -431,8 +467,27 @@ watch(workshopDevices,(newData) => {
             :data-source="faultTableData"
             :pagination="false"
             size="small"
-            :scroll="{ y: 280 }"
-        />
+            :scroll="{ y: 250 }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'priority'">
+              <a-tag v-if="record.status === 'fault'" color="red">
+                高
+              </a-tag>
+              <a-tag v-else-if="record.status === 'warning'" color="orange">
+                中
+              </a-tag>
+            </template>
+            <template v-if="column.key === 'status'">
+              <a-tag v-if="record.status === 'fault'" color="red">
+                故障
+              </a-tag>
+              <a-tag v-else-if="record.status === 'warning'" color="orange">
+                警告
+              </a-tag>
+            </template>
+          </template>
+        </a-table>
       </div>
 
       <div class="footer-info">
@@ -730,7 +785,7 @@ watch(workshopDevices,(newData) => {
 
 .legend-dot.online { background: #52c41a; }
 .legend-dot.fault { background: #ff4d4f; }
-.legend-dot.standby { background: #faad14; }
+.legend-dot.warning { background: #faad14; }
 .legend-dot.offline { background: #8c8c8c; }
 
 .workshop-floor {
@@ -772,7 +827,8 @@ watch(workshopDevices,(newData) => {
   animation: pulse-fault 2s infinite;
 }
 
-.machine-unit.standby {
+
+.machine-unit.warning {
   border-color: #faad14;
   background: rgba(250, 173, 20, 0.08);
 }
@@ -801,7 +857,7 @@ watch(workshopDevices,(newData) => {
 
 .machine-unit.online .machine-indicator { background: #52c41a; box-shadow: 0 0 8px #52c41a; }
 .machine-unit.fault .machine-indicator { background: #ff4d4f; box-shadow: 0 0 8px #ff4d4f; }
-.machine-unit.standby .machine-indicator { background: #faad14; box-shadow: 0 0 8px #faad14; }
+.machine-unit.warning .machine-indicator { background: #faad14; box-shadow: 0 0 8px #faad14; }
 .machine-unit.offline .machine-indicator { background: #8c8c8c; }
 
 .machine-name {

@@ -171,7 +171,7 @@ const initStatusChart = () => {
         data: [
           { value: deviceStatusData.value.online, name: '在线', itemStyle: { color: '#52c41a' } },
           { value: deviceStatusData.value.offline, name: '离线', itemStyle: { color: '#8c8c8c' } },
-          { value: deviceStatusData.value.fault, name: '故障', itemStyle: { color: '#ff4d4f' } },
+          { value: deviceStatusData.value.error, name: '故障', itemStyle: { color: '#ff4d4f' } },
           { value: deviceStatusData.value.warning, name: '警告', itemStyle: { color: '#faad14' } }
         ]
       }
@@ -232,7 +232,7 @@ const getStatusColor = (status) => {
   const colors = {
     online: '#52c41a',
     offline: '#8c8c8c',
-    fault: '#ff4d4f',
+    error: '#ff4d4f',
     warning: '#faad14',
   }
   return colors[status] || '#8c8c8c'
@@ -242,7 +242,7 @@ const getStatusText = (status) => {
   const texts = {
     online: '运行',
     offline: '离线',
-    fault: '故障',
+    error: '故障',
     warning: '警告'
   }
   return texts[status] || '未知'
@@ -397,7 +397,7 @@ watch(workshopDevices,(newData) => {
             <h3 class="workshop-title">🏭 车间A - 设备实时监控</h3>
             <div class="legend">
               <span class="legend-item"><span class="legend-dot online"></span>运行</span>
-              <span class="legend-item"><span class="legend-dot fault"></span>故障</span>
+              <span class="legend-item"><span class="legend-dot error"></span>故障</span>
               <span class="legend-item"><span class="legend-dot warning"></span>警告</span>
               <span class="legend-item"><span class="legend-dot offline"></span>离线</span>
             </div>
@@ -450,8 +450,8 @@ watch(workshopDevices,(newData) => {
             :columns="[
             { title: '设备编号', dataIndex: 'id', key: 'deviceId', width: 100 },
             { title: '设备名称', dataIndex: 'name', key: 'deviceName', width: 120 },
-            { title: '故障代码', dataIndex: 'faultCode', key: 'faultCode', width: 100 },
-            { title: '故障描述', dataIndex: 'faultDesc', key: 'faultDesc', ellipsis: true },
+            { title: '故障代码', dataIndex: 'errorCode', key: 'errorCode', width: 100 },
+            { title: '故障描述', dataIndex: 'errorDesc', key: 'errorDesc', ellipsis: true },
             { title: '位置', dataIndex: 'location', key: 'location', width: 100 },
             { title: '开始时间', dataIndex: 'startTime', key: 'startTime', width: 100 },
             // { title: '持续时间', dataIndex: 'duration', key: 'duration', width: 100 },
@@ -471,7 +471,7 @@ watch(workshopDevices,(newData) => {
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'priority'">
-              <a-tag v-if="record.status === 'fault'" color="red">
+              <a-tag v-if="record.status === 'error'" color="red">
                 高
               </a-tag>
               <a-tag v-else-if="record.status === 'warning'" color="orange">
@@ -479,7 +479,7 @@ watch(workshopDevices,(newData) => {
               </a-tag>
             </template>
             <template v-if="column.key === 'status'">
-              <a-tag v-if="record.status === 'fault'" color="red">
+              <a-tag v-if="record.status === 'error'" color="red">
                 故障
               </a-tag>
               <a-tag v-else-if="record.status === 'warning'" color="orange">
@@ -608,7 +608,7 @@ watch(workshopDevices,(newData) => {
   animation: blink 1.5s infinite;
 }
 
-.alarm-dot.fault {
+.alarm-dot.error {
   background: #ff4d4f;
   box-shadow: 0 0 8px #ff4d4f;
 }
@@ -784,7 +784,7 @@ watch(workshopDevices,(newData) => {
 }
 
 .legend-dot.online { background: #52c41a; }
-.legend-dot.fault { background: #ff4d4f; }
+.legend-dot.error { background: #ff4d4f; }
 .legend-dot.warning { background: #faad14; }
 .legend-dot.offline { background: #8c8c8c; }
 
@@ -821,10 +821,10 @@ watch(workshopDevices,(newData) => {
   background: rgba(82, 196, 26, 0.08);
 }
 
-.machine-unit.fault {
+.machine-unit.error {
   border-color: #ff4d4f;
   background: rgba(255, 77, 79, 0.1);
-  animation: pulse-fault 2s infinite;
+  animation: pulse-error 2s infinite;
 }
 
 
@@ -843,7 +843,7 @@ watch(workshopDevices,(newData) => {
   background: rgba(250, 173, 20, 0.08);
 }
 
-@keyframes pulse-fault {
+@keyframes pulse-error {
   0%, 100% { box-shadow: 0 0 0 rgba(255, 77, 79, 0.3); }
   50% { box-shadow: 0 0 12px rgba(255, 77, 79, 0.6); }
 }
@@ -856,7 +856,7 @@ watch(workshopDevices,(newData) => {
 }
 
 .machine-unit.online .machine-indicator { background: #52c41a; box-shadow: 0 0 8px #52c41a; }
-.machine-unit.fault .machine-indicator { background: #ff4d4f; box-shadow: 0 0 8px #ff4d4f; }
+.machine-unit.error .machine-indicator { background: #ff4d4f; box-shadow: 0 0 8px #ff4d4f; }
 .machine-unit.warning .machine-indicator { background: #faad14; box-shadow: 0 0 8px #faad14; }
 .machine-unit.offline .machine-indicator { background: #8c8c8c; }
 

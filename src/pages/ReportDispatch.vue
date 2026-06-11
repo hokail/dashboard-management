@@ -1,80 +1,30 @@
 <script setup>
-import {ref} from 'vue'
+import {ref, computed, onMounted} from 'vue'
+import dayjs from 'dayjs'
+import {reportStore} from '../stores/reportDispatch.js'
+import {storeToRefs} from "pinia";
+
+const useReportStore = reportStore()
+
+const {alarmList,userList} = storeToRefs(useReportStore)
+
+const {getAlarmList,sendDispatchList,getUserList} = useReportStore
 
 const dispatchColumns = ref([
   { title: '', key: 'selection', width: 50, align: 'center' },
-  { title: '级别', dataIndex: 'priority', key: 'priority', width: 80, align: 'center' },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 100, align: 'center' },
-  { title: '设备名称', dataIndex: 'deviceName', key: 'deviceName', width: 150 },
-  { title: '故障描述', dataIndex: 'errorDesc', key: 'errorDesc', ellipsis: true },
-  { title: '位置', dataIndex: 'location', key: 'location', width: 120 },
-  { title: '开始时间', dataIndex: 'startTime', key: 'startTime', width: 160 },
+  { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80, align: 'center' },
+  { title: '派单状态', dataIndex: 'dispatchStatus', key: 'dispatchStatus', width: 100, align: 'center' },
+  { title: '设备名称', dataIndex: 'name', key: 'name', width: 150 },
+  { title: '故障代码', dataIndex: 'errorCode', key: 'errorCode', width: 100 },
+  { title: '故障描述', dataIndex: 'errorDesc', key: 'errorDesc', ellipsis: true ,width: 500},
+  { title: '位置', dataIndex: 'location', key: 'location', width: 100 },
+  { title: '开始时间', dataIndex: 'startTime', key: 'startTime', width: 120 },
   { title: '持续时长', dataIndex: 'duration', key: 'duration', width: 100 },
-  { title: '操作',dataIndex:'action', key: 'action', width: 200, fixed: 'right', align: 'center' }
-])
-
-// 报警事件列表数据（模拟）
-const alarmList = ref([
-  {
-    id: 'ALM001',
-    deviceId: 'DEV001',
-    deviceName: 'CNC加工中心-01',
-    priority: 'high',
-    status: 'unhandled',
-    errorDesc: '主轴温度过高',
-    location: '车间A-区域1',
-    startTime: '2026-06-03 08:30:00',
-    duration: '2小时15分',
-    workOrderId: null
-  },
-  {
-    id: 'ALM002',
-    deviceId: 'DEV015',
-    deviceName: '注塑机-03',
-    priority: 'medium',
-    status: 'processing',
-    errorDesc: '液压系统压力异常',
-    location: '车间B-区域2',
-    startTime: '2026-06-03 09:45:00',
-    duration: '1小时',
-    workOrderId: 'WO20260603001'
-  },
-  {
-    id: 'ALM003',
-    deviceId: 'DEV023',
-    deviceName: '冲压机-07',
-    priority: 'low',
-    status: 'dispatched',
-    errorDesc: '润滑油位偏低',
-    location: '车间A-区域3',
-    startTime: '2026-06-03 10:20:00',
-    duration: '25分钟',
-    workOrderId: 'WO20260603002'
-  },
-  {
-    id: 'ALM004',
-    deviceId: 'DEV008',
-    deviceName: '焊接机器人-02',
-    priority: 'high',
-    status: 'unhandled',
-    errorDesc: '焊丝送丝故障',
-    location: '车间C-区域1',
-    startTime: '2026-06-03 10:50:00',
-    duration: '5分钟',
-    workOrderId: null
-  },
-  {
-    id: 'ALM005',
-    deviceId: 'DEV032',
-    deviceName: '装配线-05',
-    priority: 'medium',
-    status: 'unhandled',
-    errorDesc: '传送带速度异常',
-    location: '车间B-区域4',
-    startTime: '2026-06-03 07:15:00',
-    duration: '3小时30分',
-    workOrderId: null
-  }
+  { title: '指派人', dataIndex: 'assignee', key: 'assignee', width: 100 },
+  { title: '指派人电话', dataIndex: 'assigneePhone', key: 'assigneePhone', width: 120 },
+  { title: '预期完成时间', dataIndex: 'expectedTime', key: 'expectedTime', width: 120 },
+  { title: '备注', dataIndex: 'remark', key: 'remark', width: 500 , ellipsis: true},
+  { title: '操作',dataIndex:'action', key: 'action', width: 100, fixed: 'right', align: 'center' }
 ])
 
 let dispatchForm = ref({
@@ -115,23 +65,84 @@ const dispatchFormRules = {
   ]
 }
 
-let dispatchVisible = ref(false)
+const dispatchVisible = ref(false)
+const dispatchConfirmLoading = ref(false)
+
+const currentTime = ref(dayjs().format('YYYY-MM-DD HH:mm:ss'))
+const selectedPriority = ref('')
+const selectedStatus = ref('')
+const searchDeviceName = ref('')
+const selectedRowKeys = ref([])
+
+const totalAlarms = computed(() => alarmList.value.length)
+const unhandledAlarms = computed(() => alarmList.value.filter(item => item.dispatchStatus === 'unhandled').length)
+const dispatchedToday = computed(() => alarmList.value.filter(item => item.dispatchStatus === 'dispatched').length)
+const processingAlarms = computed(() => alarmList.value.filter(item => item.dispatchStatus === 'processing').length)
+
+const searchDeviceNameList = computed(() => alarmList.value.map(item => {
+  return {
+    label: item.name,
+    value: item.name
+  }
+}))
+
+const filteredAlarmList = computed(() => {
+  let result = [...alarmList.value]
+
+  if (selectedPriority.value) {
+    result = result.filter(item => item.priority === selectedPriority.value)
+  }
+
+  if (selectedStatus.value) {
+    result = result.filter(item => item.dispatchStatus === selectedStatus.value)
+  }
+
+  if (searchDeviceName.value) {
+    result = result.filter(item =>
+      item.name.includes(searchDeviceName.value)
+    )
+  }
+
+  return result
+})
 
 function closeDispatchModal(){
   dispatchVisible.value = false
 }
-function confirmDispatch(){
-  console.log('confirmDispatch', arguments)
-  dispatchVisible.value = false
+
+async function confirmDispatch(){
+  try {
+    await dispatchFormRef.value.validate()
+
+    console.log('派单信息:', dispatchForm.value)
+
+    const index = alarmList.value.findIndex(item => item.id === dispatchForm.value.alarmId)
+
+    if (index !== -1) {
+      alarmList.value[index].dispatchStatus = 'dispatched'
+      alarmList.value[index].workOrderId = dispatchForm.value.workOrderId
+    }
+
+    dispatchConfirmLoading.value = true
+    await sendDispatchList([dispatchForm.value[index]])
+    dispatchConfirmLoading.value = false
+    dispatchVisible.value = false
+
+    console.log('派单成功')
+  } catch (error) {
+    console.error('表单验证失败:', error)
+    dispatchConfirmLoading.value = false
+  }
 }
 
 function handleDispatch(record){
   dispatchVisible.value = true
   // 填充报警信息
+
   dispatchForm.value = {
-    alarmId: record.id,
-    deviceId: record.deviceId,
-    deviceName: record.deviceName,
+    alarmId: record.alarmId,
+    id: record.id,
+    name: record.name,
     errorDesc: record.errorDesc,
     location: record.location,
     workOrderId: `WO${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(Math.random()).substr(2, 3)}`,
@@ -141,50 +152,191 @@ function handleDispatch(record){
     expectedTime: '',
     remark: ''
   }
+
   console.log('handleDispatch', arguments)
 }
+
+function handleRefresh() {
+  currentTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
+}
+
+function onSelectChange(keys) {
+  selectedRowKeys.value = keys
+}
+
+function handleBatchDispatch() {
+  if (selectedRowKeys.value.length === 0) {
+    console.log('请先选择要派单的记录')
+    return
+  }
+  console.log('批量派单:', selectedRowKeys.value)
+}
+
+function getPriorityConfig(priority) {
+  const config = {
+    high: { color: 'red', text: '高' },
+    medium: { color: 'orange', text: '中' },
+    low: { color: 'green', text: '低' }
+  }
+  return config[priority] || { color: 'default', text: priority }
+}
+
+function getStatusConfig(dispatchStatus) {
+  const config = {
+    unhandled: { color: 'red', text: '未处理' },
+    processing: { color: 'blue', text: '处理中' },
+    dispatched: { color: 'green', text: '已派单' }
+  }
+  return config[dispatchStatus] || { color: 'red', text: '未处理' }
+}
+
+onMounted(()=> {
+  getAlarmList()
+  getUserList()
+})
+
 </script>
 <template>
-   <a-card size="small" bordered>
-      <a-row>
-        <a-table
-            style="width: 100%"
-          :columns = "dispatchColumns"
-          :data-source = "alarmList"
-          :pagination = "false"
-          :scroll = "{ x: 1500 }"
-          :row-key = "record => record.id"
+  <div class="report-dispatch-container">
+    <!-- 页面标题栏 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">📋 工单派单管理</h2>
+        <span class="current-time">{{ currentTime }}</span>
+      </div>
+      <div class="header-right">
+        <a-button @click="handleRefresh" size="small">🔄 刷新</a-button>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+      <a-card class="stat-card">
+        <a-statistic
+          title="总报警数"
+          :value="totalAlarms"
+          :value-style="{ color: '#1890ff', fontSize: '24px' }"
+        />
+      </a-card>
+      <a-card class="stat-card">
+        <a-statistic
+          title="未处理"
+          :value="unhandledAlarms"
+          :value-style="{ color: '#ff4d4f', fontSize: '24px' }"
+        />
+      </a-card>
+      <a-card class="stat-card">
+        <a-statistic
+          title="处理中"
+          :value="processingAlarms"
+          :value-style="{ color: '#faad14', fontSize: '24px' }"
+        />
+      </a-card>
+      <a-card class="stat-card">
+        <a-statistic
+          title="今日已派单"
+          :value="dispatchedToday"
+          :value-style="{ color: '#52c41a', fontSize: '24px' }"
+        />
+      </a-card>
+    </div>
+
+    <!-- 筛选工具栏 -->
+    <div class="filter-toolbar">
+      <div class="filter-left">
+        <a-select
+          v-model:value="selectedPriority"
+          placeholder="优先级"
+          style="width: 120px"
+          allow-clear
         >
-          <template #bodyCell = "{column, record}">
-            <template v-if="column.key === 'action'">
-              <a-button type="primary" size="small" @click="handleDispatch(record)">派单</a-button>
-            </template>
+          <a-select-option value="high">高</a-select-option>
+          <a-select-option value="medium">中</a-select-option>
+          <a-select-option value="low">低</a-select-option>
+        </a-select>
 
-            <template v-else-if="column.key === 'priority'">
-              <a-tag v-if="column.key === 'priority'" color="red">{{ record[column.key] }}</a-tag>
-              <a-tag v-else-if="column.key === 'status'" color="orange">{{ record[column.key] }}</a-tag>
-              <a-tag v-else-if="column.key === 'location'" color="green">{{ record[column.key] }}</a-tag>
-              <a-tag v-else>{{ record[column.key] }}</a-tag>
-            </template>
+        <a-select
+          v-model:value="selectedStatus"
+          placeholder="状态"
+          style="width: 120px"
+          allow-clear
+        >
+          <a-select-option value="unhandled">未处理</a-select-option>
+          <a-select-option value="processing">处理中</a-select-option>
+          <a-select-option value="dispatched">已派单</a-select-option>
+        </a-select>
 
-            <template v-else-if="column.key === 'status'">
-              <a-tag v-if="column.key === 'priority'" color="red">{{ record[column.key] }}</a-tag>
-              <a-tag v-else-if="column.key === 'status'" color="orange">{{ record[column.key] }}</a-tag>
-              <a-tag v-else-if="column.key === 'location'" color="green">{{ record[column.key] }}</a-tag>
-              <a-tag v-else>{{ record[column.key] }}</a-tag>
-            </template>
+        <a-select
+          v-model:value="searchDeviceName"
+          placeholder="搜索设备名称"
+          style="width: 200px"
+          allow-clear
+          show-search
+          :options="searchDeviceNameList"
+        />
+      </div>
+
+      <div class="filter-right">
+        <a-button
+          type="primary"
+          @click="handleBatchDispatch"
+          :disabled="selectedRowKeys.length === 0"
+        >
+          批量派单
+        </a-button>
+      </div>
+    </div>
+
+    <!-- 表格区域 -->
+    <a-card size="small" bordered class="table-card">
+      <a-table
+        :columns="dispatchColumns"
+        :data-source="filteredAlarmList"
+        :pagination="{ pageSize: 10, showSizeChanger: true, showTotal: total => `共 ${total} 条` }"
+        :scroll="{ x: 1500 }"
+        :row-key="record => record.id"
+        :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
+      >
+        <template #bodyCell="{column, record}">
+          <template v-if="column.key === 'action'">
+            <a-space>
+              <a-button
+                type="primary"
+                size="small"
+                @click="handleDispatch(record)"
+                v-if="record.dispatchStatus === 'unhandled' || !record.dispatchStatus"
+              >
+                派单
+              </a-button>
+              <a-tag v-else color="green">已派单</a-tag>
+            </a-space>
           </template>
-        </a-table>
-      </a-row>
-   </a-card>
+
+          <template v-else-if="column.key === 'priority'">
+            <a-tag :color="getPriorityConfig(record.priority).color">
+              {{ getPriorityConfig(record.priority).text }}
+            </a-tag>
+          </template>
+
+          <template v-else-if="column.key === 'dispatchStatus'">
+            <a-tag :color="getStatusConfig(record.dispatchStatus).color">
+              {{ getStatusConfig(record.dispatchStatus).text }}
+            </a-tag>
+          </template>
+        </template>
+      </a-table>
+    </a-card>
+
+    <!-- 派单对话框 -->
     <a-modal
       title="派单"
-      :ok-text="'派单'"
+      :ok-text="'确认派单'"
       :cancel-text="'取消'"
-      :visible="dispatchVisible"
+      v-model:open="dispatchVisible"
       @cancel="closeDispatchModal"
       @ok="confirmDispatch"
       width="1000px"
+      :confirm-loading="false"
     >
       <a-form
         ref="dispatchFormRef"
@@ -192,9 +344,10 @@ function handleDispatch(record){
         :rules="dispatchFormRules"
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
+        :confirmLoading="dispatchConfirmLoading"
       >
         <!-- 报警信息区域 -->
-        <a-card size="small" title="报警信息">
+        <a-card size="small" title="报警信息" class="form-section">
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="报警ID">
@@ -203,14 +356,15 @@ function handleDispatch(record){
             </a-col>
             <a-col :span="12">
               <a-form-item label="设备ID">
-                <a-input v-model:value="dispatchForm.deviceId" disabled />
+                <a-input v-model:value="dispatchForm.id" disabled />
               </a-form-item>
             </a-col>
           </a-row>
+
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="设备名称">
-                <a-input v-model:value="dispatchForm.deviceName" disabled />
+                <a-input v-model:value="dispatchForm.name" disabled />
               </a-form-item>
             </a-col>
             <a-col :span="12">
@@ -223,25 +377,21 @@ function handleDispatch(record){
           <a-form-item label="故障描述" :label-col="{ span: 3 }" :wrapper-col="{ span: 21 }">
             <a-textarea v-model:value="dispatchForm.errorDesc" :rows="2" disabled />
           </a-form-item>
-
         </a-card>
-        <!-- 工单信息区域 -->
 
-        <a-card size="small" title="工单信息">
+        <!-- 工单信息区域 -->
+        <a-card size="small" title="工单信息" class="form-section">
           <a-form-item label="工单号" :label-col="{ span: 3 }" :wrapper-col="{ span: 21 }">
             <a-input v-model:value="dispatchForm.workOrderId" disabled />
           </a-form-item>
         </a-card>
+
         <!-- 派单信息区域 -->
-        <a-card size="small" title="派单信息">
+        <a-card size="small" title="派单信息" class="form-section">
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="指派人" name="assignee">
-                <a-select v-model:value="dispatchForm.assignee" placeholder="请选择指派人">
-                  <a-select-option value="worker1">张三</a-select-option>
-                  <a-select-option value="worker2">李四</a-select-option>
-                  <a-select-option value="worker3">王五</a-select-option>
-                  <a-select-option value="worker4">赵六</a-select-option>
+                <a-select v-model:value="dispatchForm.assignee" placeholder="请选择指派人" :options="userList">
                 </a-select>
               </a-form-item>
             </a-col>
@@ -271,11 +421,11 @@ function handleDispatch(record){
             <a-col :span="12">
               <a-form-item label="预计完成时间" name="expectedTime">
                 <a-date-picker
-                    v-model:value="dispatchForm.expectedTime"
-                    show-time
-                    format="YYYY-MM-DD HH:mm:ss"
-                    placeholder="请选择预计完成时间"
-                    style="width: 100%"
+                  v-model:value="dispatchForm.expectedTime"
+                  show-time
+                  format="YYYY-MM-DD HH:mm:ss"
+                  placeholder="请选择预计完成时间"
+                  style="width: 100%"
                 />
               </a-form-item>
             </a-col>
@@ -283,37 +433,93 @@ function handleDispatch(record){
 
           <a-form-item label="备注说明" :label-col="{ span: 3 }" :wrapper-col="{ span: 21 }">
             <a-textarea
-                v-model:value="dispatchForm.remark"
-                placeholder="请输入备注说明"
-                :rows="3"
+              v-model:value="dispatchForm.remark"
+              placeholder="请输入备注说明"
+              :rows="3"
             />
           </a-form-item>
-
         </a-card>
-
-
-
-
-
-
       </a-form>
     </a-modal>
+  </div>
 </template>
 
 <style scoped>
-  .report-dispatch {
-    width: 100%;
-    height: 100%;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-  }
+.report-dispatch-container {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  background: #f0f2f5;
+  overflow-y: auto;
+}
 
-  .report-dispatch-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #000;
+}
+
+.current-time {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.filter-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.filter-left {
+  display: flex;
+  gap: 12px;
+}
+
+.table-card {
+  background: white;
+}
+
+.form-section {
+  margin-bottom: 16px;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
 </style>

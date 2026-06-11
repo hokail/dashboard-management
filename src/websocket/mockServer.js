@@ -7,7 +7,7 @@
 import { Server } from 'mock-socket'
 
 
-const faultCodes = [
+const errorCodes = [
     { code: 'E-301', desc: '主轴温度过高' },
     { code: 'E-205', desc: '模具卡死' },
     { code: 'E-110', desc: '传送带偏移' },
@@ -34,7 +34,7 @@ class MockWebSocketServer {
         this.devices = [
             { id: 'D001', name: 'CNC-01', type: 'CNC机床', status: 'online', x: 0, y: 0 },
             { id: 'D002', name: 'CNC-02', type: 'CNC机床', status: 'online', x: 1, y: 0 },
-            { id: 'D003', name: 'CNC-03', type: 'CNC机床', status: 'fault', x: 2, y: 0 },
+            { id: 'D003', name: 'CNC-03', type: 'CNC机床', status: 'error', x: 2, y: 0 },
             { id: 'D004', name: 'CNC-04', type: 'CNC机床', status: 'online', x: 3, y: 0 },
             { id: 'D005', name: 'CNC-05', type: 'CNC机床', status: 'online', x: 4, y: 0 },
             { id: 'D006', name: 'CNC-06', type: 'CNC机床', status: 'online', x: 5, y: 0 },
@@ -45,7 +45,7 @@ class MockWebSocketServer {
             { id: 'D010', name: '注塑-02', type: '注塑机', status: 'online', x: 1, y: 1 },
             { id: 'D011', name: '注塑-03', type: '注塑机', status: 'warning', x: 2, y: 1 },
             { id: 'D012', name: '注塑-04', type: '注塑机', status: 'online', x: 3, y: 1 },
-            { id: 'D013', name: '注塑-05', type: '注塑机', status: 'fault', x: 4, y: 1 },
+            { id: 'D013', name: '注塑-05', type: '注塑机', status: 'error', x: 4, y: 1 },
             { id: 'D014', name: '注塑-06', type: '注塑机', status: 'online', x: 5, y: 1 },
             { id: 'D015', name: '注塑-07', type: '注塑机', status: 'online', x: 6, y: 1 },
             { id: 'D016', name: '注塑-08', type: '注塑机', status: 'online', x: 7, y: 1 },
@@ -56,7 +56,7 @@ class MockWebSocketServer {
             { id: 'D020', name: '冲压-04', type: '冲压机', status: 'online', x: 3, y: 2 },
             { id: 'D021', name: '冲压-05', type: '冲压机', status: 'online', x: 4, y: 2 },
             { id: 'D022', name: '冲压-06', type: '冲压机', status: 'online', x: 5, y: 2 },
-            { id: 'D023', name: '冲压-07', type: '冲压机', status: 'fault', x: 6, y: 2 },
+            { id: 'D023', name: '冲压-07', type: '冲压机', status: 'error', x: 6, y: 2 },
             { id: 'D024', name: '冲压-08', type: '冲压机', status: 'online', x: 7, y: 2 },
 
             { id: 'D025', name: '焊接-01', type: '焊接机器人', status: 'online', x: 0, y: 3 },
@@ -70,7 +70,7 @@ class MockWebSocketServer {
 
             { id: 'D033', name: '装配-01', type: '装配线', status: 'online', x: 0, y: 4 },
             { id: 'D034', name: '装配-02', type: '装配线', status: 'online', x: 1, y: 4 },
-            { id: 'D035', name: '装配-03', type: '装配线', status: 'fault', x: 2, y: 4 },
+            { id: 'D035', name: '装配-03', type: '装配线', status: 'error', x: 2, y: 4 },
             { id: 'D036', name: '装配-04', type: '装配线', status: 'online', x: 3, y: 4 },
             { id: 'D037', name: '装配-05', type: '装配线', status: 'online', x: 4, y: 4 },
             { id: 'D038', name: '装配-06', type: '装配线', status: 'online', x: 5, y: 4 },
@@ -202,12 +202,12 @@ class MockWebSocketServer {
 
             // 小概率（5%）改变设备状态：在线/警告之间切换
             // if (Math.random() < 0.05) {
-                const statuses = ['warning', 'fault','online']
+                const statuses = ['warning', 'error','online']
                 device.status = statuses[Math.floor(Math.random() * statuses.length)]
-                if (device.status === 'fault' || device.status === 'warning') {
-                    const randomFault = faultCodes[Math.floor(Math.random() * faultCodes.length)]
-                    device.faultCode = randomFault.code
-                    device.faultDesc = randomFault.desc
+                if (device.status === 'error' || device.status === 'warning') {
+                    const randomFault = errorCodes[Math.floor(Math.random() * errorCodes.length)]
+                    device.errorCode = randomFault.code
+                    device.errorDesc = randomFault.desc
                     const now = new Date()
                     const hours = String(now.getHours()).padStart(2, '0')
                     const minutes = String(now.getMinutes()).padStart(2, '0')
@@ -216,8 +216,8 @@ class MockWebSocketServer {
                     device.location = `车间${device.x}-${device.y}`
                 } else {
                     // 如果状态恢复正常，清除错误信息
-                    delete device.faultCode
-                    delete device.faultDesc
+                    delete device.errorCode
+                    delete device.errorDesc
                     delete device.startTime
                 }
             // }

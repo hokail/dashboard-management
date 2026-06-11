@@ -123,7 +123,7 @@ export default [
                 message: 'success',
                 data: {
                     faultTableData: [
-                        { key: '1', id: 'D003', name: 'CNC-03', deviceType: 'CNC机床', status: 'fault', faultCode: 'E-301', faultDesc: '主轴温度过高', location: '车间A-3', startTime: '08:20:15', duration: '2小时15分', handleStatus: '处理中', priority: 'high' },
+                        { key: '1', id: 'D003', name: 'CNC-03', deviceType: 'CNC机床', status: 'fault', errorCode: 'E-301', faultDesc: '主轴温度过高', location: '车间A-3', startTime: '08:20:15', duration: '2小时15分', handleStatus: '处理中', priority: 'high' },
                         { key: '2', id: 'D013', name: '注塑-05', deviceType: '注塑机', status: 'fault', faultCode: 'W-102', faultDesc: '液压油压力异常', location: '车间B-7', startTime: '09:05:30', duration: '45分钟', handleStatus: '待维修', priority: 'high' },
                         { key: '3', id: 'D023', name: '冲压-07', deviceType: '冲压机', status: 'fault', faultCode: 'E-205', faultDesc: '模具卡死', location: '车间A-9', startTime: '10:15:20', duration: '1小时30分', handleStatus: '处理中', priority: 'medium' },
                         { key: '4', id: 'D035', name: '装配-03', deviceType: '装配线', status: 'fault', faultCode: 'E-110', faultDesc: '传送带偏移', location: '车间B-4', startTime: '07:35:45', duration: '3小时', handleStatus: '待备件', priority: 'medium' },

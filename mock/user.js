@@ -33,10 +33,55 @@ export default [
                 data: {
                     username: 'admin',
                     nickname: '管理员',
-                    avatar: 'https://example.com/avatar.png',
                     roles: ['admin']
                 }
             }
-        }
+        },
+
+    },
+    {
+        url: '/api/user/getUserList',
+        method: 'get',
+        response: () => {
+            return {
+                code: 200,
+                message: 'success',
+                data: {
+                    userList: [
+                        {
+                            userid: 'admin',
+                            username: '管理员',
+                            roles: ['admin']
+                        },
+                        {
+                            userid: '3',
+                            username: '张三',
+                            roles: ['user']
+                        },
+                        {
+                            userid: '4',
+                            username: '李四',
+                            roles: ['editor']
+                        },
+                        {
+                            userid: '5',
+                            username: '王五',
+                            roles: ['user']
+                        },
+                        {
+                            userid: '6',
+                            username: '赵六',
+                            roles: ['viewer']
+                        },
+                        {
+                            userid: '7',
+                            username: '孙七',
+                            roles: ['editor']
+                        }
+                    ]
+                }
+            }
+        },
+
     }
 ]

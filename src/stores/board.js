@@ -23,7 +23,7 @@ export const boardStore =  defineStore('board', () => {
     let deviceStatusData = ref({
         online: '',
         offline: '',
-        fault: '',
+        error: '',
         standby: ''
     })
 
@@ -84,7 +84,7 @@ export const boardStore =  defineStore('board', () => {
                 deviceStatusData.value = {
                     online: workshopDevices.value.filter(device => device.status === 'online').length,
                     offline: workshopDevices.value.filter(device => device.status === 'offline').length,
-                    fault: workshopDevices.value.filter(device => device.status === 'fault').length,
+                    error: workshopDevices.value.filter(device => device.status === 'error').length,
                     standby: workshopDevices.value.filter(device => device.status === 'standby').length
                 }
 

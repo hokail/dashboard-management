@@ -1,14 +1,32 @@
 <script setup>
-import {ref, computed, onMounted} from 'vue'
+import {ref, computed, onMounted, onUnmounted, toRef} from 'vue'
 import dayjs from 'dayjs'
 import {reportStore} from '../stores/reportDispatch.js'
 import {storeToRefs} from "pinia";
+import {socketStore} from "../stores/mockSocketStore.js";
+import {message} from "ant-design-vue";
 
+const props = defineProps({
+  alarmList:{
+    type: Array,
+    default: () => []
+  }
+})
+
+const emits = defineEmits(['update:faultTableData'])
+
+const alarmList = toRef(props,'alarmList')
+
+
+const useSocketState = socketStore()
+
+// let {addOnMessage,removeOnMessage} = useSocketState
 const useReportStore = reportStore()
 
-const {alarmList,userList} = storeToRefs(useReportStore)
 
-const {getAlarmList,sendDispatchList,getUserList} = useReportStore
+const {userList} = storeToRefs(useReportStore)
+
+const {sendDispatchList,getUserList} = useReportStore
 
 const dispatchColumns = ref([
   { title: '', key: 'selection', width: 50, align: 'center' },
@@ -55,7 +73,7 @@ const dispatchFormRules = {
   ],
   assigneePhone: [
     { required: true, message: '请输入联系电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+    // { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
   ],
   priority: [
     { required: true, message: '请选择优先级', trigger: 'change' }
@@ -116,21 +134,35 @@ async function confirmDispatch(){
 
     console.log('派单信息:', dispatchForm.value)
 
-    const index = alarmList.value.findIndex(item => item.id === dispatchForm.value.alarmId)
+    const index = alarmList.value.findIndex(item => item.id === dispatchForm.value.id)
 
     if (index !== -1) {
-      alarmList.value[index].dispatchStatus = 'dispatched'
-      alarmList.value[index].workOrderId = dispatchForm.value.workOrderId
+      dispatchConfirmLoading.value = true
+      const result = await sendDispatchList([alarmList.value[index]])
+      dispatchConfirmLoading.value = false
+
+      if(result){
+        const updatedItem = {
+          ...alarmList.value[index],
+          dispatchStatus: 'dispatched',
+          workOrderId: dispatchForm.value.workOrderId,
+          assignee: dispatchForm.value.assignee,
+          assigneePhone: dispatchForm.value.assigneePhone,
+          expectedTime: dispatchForm.value.expectedTime,
+          remark: dispatchForm.value.remark
+        }
+
+        emits('update:faultTableData', [updatedItem])
+      }
+
+      dispatchVisible.value = false
+
+    }else {
+      message.error('未找到对应的报警信息')
     }
-
-    dispatchConfirmLoading.value = true
-    await sendDispatchList([dispatchForm.value[index]])
-    dispatchConfirmLoading.value = false
-    dispatchVisible.value = false
-
-    console.log('派单成功')
   } catch (error) {
     console.error('表单验证失败:', error)
+    message.error('表单验证失败')
     dispatchConfirmLoading.value = false
   }
 }
@@ -166,7 +198,7 @@ function onSelectChange(keys) {
 
 function handleBatchDispatch() {
   if (selectedRowKeys.value.length === 0) {
-    console.log('请先选择要派单的记录')
+    message.warning('请先选择要派单的记录')
     return
   }
   console.log('批量派单:', selectedRowKeys.value)
@@ -190,24 +222,47 @@ function getStatusConfig(dispatchStatus) {
   return config[dispatchStatus] || { color: 'red', text: '未处理' }
 }
 
+// function dispatchAlarmListUpdate(event){
+//   console.log('----------------dispatch')
+//   try {
+//     const message = JSON.parse(event.data)
+//
+//     if (message.type === 'device-status') {
+//       const updates = Array.isArray(message.data) ? message.data : [message.data]
+//
+//       updates.forEach(update => {
+//
+//         const indexFault = alarmList.value.findIndex(d => d.id === update.id)
+//         if(update.status !== 'online'){
+//           if (indexFault === -1) {
+//             alarmList.value.push({
+//               ...update,
+//               alarmId: alarmList.length + 1,
+//               lastUpdate: Date.now()
+//             })
+//           }
+//         }
+//       })
+//       console.log('设备状态更新成功')
+//     }
+//   } catch (error) {
+//     console.error('解析消息失败:', error)
+//   }
+// }
+
 onMounted(()=> {
-  getAlarmList()
+  // addOnMessage('handleDispatch',dispatchAlarmListUpdate)
   getUserList()
+})
+
+onUnmounted(()=>{
+  // removeOnMessage('handleDispatch')
 })
 
 </script>
 <template>
   <div class="report-dispatch-container">
     <!-- 页面标题栏 -->
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">📋 工单派单管理</h2>
-        <span class="current-time">{{ currentTime }}</span>
-      </div>
-      <div class="header-right">
-        <a-button @click="handleRefresh" size="small">🔄 刷新</a-button>
-      </div>
-    </div>
 
     <!-- 统计卡片 -->
     <div class="stats-cards">

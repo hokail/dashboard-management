@@ -7,7 +7,7 @@ import ReportDispatch from "../pages/ReportDispatch.vue";
 // import Graph from "../pages/Graph.vue";
 
 const routes = [
-    { path: '/', redirect: '/reportDispatch' },
+    { path: '/', redirect: '/board' },
     { path: '/login', component: Login },
     { path: '/home', component: Home },
     { path: '/board', component: Board },

@@ -214,6 +214,7 @@ class MockWebSocketServer {
                     const seconds = String(now.getSeconds()).padStart(2, '0')
                     device.startTime = `${hours}:${minutes}:${seconds}`
                     device.location = `车间${device.x}-${device.y}`
+                    device.alarmId = `A${Date.now()}`
                 } else {
                     // 如果状态恢复正常，清除错误信息
                     delete device.errorCode

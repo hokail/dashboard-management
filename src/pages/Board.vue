@@ -7,103 +7,78 @@ import {useWebSocket} from "../websocket/index.js";
 import {boardStore} from "../stores/board";
 import {storeToRefs} from "pinia";
 
+import {socketStore} from "../stores/mockSocketStore.js";
+import ReportDispatch from "./ReportDispatch.vue";
+
+const useSocketState = socketStore()
+
+const {addOnMessage,removeOnMessage} = useSocketState
+
 const useBoardState = boardStore()
 
-let {abnormalDevices,workshopDevices,faultTableData,keyMetrics,trendData,deviceStatusData}= storeToRefs(useBoardState)
+const {abnormalDevices,workshopDevices,faultTableData,keyMetrics,trendData,deviceStatusData}= storeToRefs(useBoardState)
 
-let {getBoardData} = useBoardState
+const {getBoardData} = useBoardState
+
+function handleAlarmListUpdate(event) {
+  try {
+    const message = JSON.parse(event.data)
+
+    if (message.type === 'device-status') {
+      const updates = Array.isArray(message.data) ? message.data : [message.data]
+
+      updates.forEach(update => {
+        const index = workshopDevices.value.findIndex(d => d.id === update.id)
+        if (index !== -1) {
+          workshopDevices.value[index] = {
+            ...update,
+            lastUpdate: Date.now()
+          }
+        }
+        const indexAbnormal = abnormalDevices.value.findIndex(d => d.id === update.id)
+        if(update.status === 'online' ) {
+          if (indexAbnormal !== -1) {
+            abnormalDevices.value.splice(index, 1)
+          }
+        }
+        else{
+          if(indexAbnormal === -1){
+            abnormalDevices.value.push({
+              ...update,
+              lastUpdate: Date.now()
+            })
+          }
+          abnormalDevices.value[indexAbnormal] = {
+            ...update,
+            lastUpdate: Date.now()
+          }
+        }
 
 
-const connectionStatus = ref('disconnected')
-const reconnectAttempts = ref(0)
-
-let ws = null
-
-function connectWebSocket() {
-  ws = useWebSocket()
-
-  ws.onOpen(() => {
-    connectionStatus.value = 'connected'
-    reconnectAttempts.value = 0
-    console.log('✅ WebSocket 连接成功')
-  })
-
-  ws.onMessage((event) => {
-    try {
-      const message = JSON.parse(event.data)
-
-      if (message.type === 'device-status') {
-        const updates = Array.isArray(message.data) ? message.data : [message.data]
-
-        updates.forEach(update => {
-          const index = workshopDevices.value.findIndex(d => d.id === update.id)
-          if (index !== -1) {
-            workshopDevices.value[index] = {
+        const indexFault = faultTableData.value.findIndex(d => d.id === update.id)
+        if(update.status === 'online'){
+          if (indexFault !== -1) {
+            faultTableData.value.splice(indexFault, 1)
+          }
+        }else {
+          if (indexFault === -1) {
+            faultTableData.value.push({
+              ...update,
+              lastUpdate: Date.now()
+            })
+          } else {
+            faultTableData.value[indexFault] = {
               ...update,
               lastUpdate: Date.now()
             }
           }
-          const indexAbnormal = abnormalDevices.value.findIndex(d => d.id === update.id)
-          if(update.status === 'online' ) {
-            if (indexAbnormal !== -1) {
-              abnormalDevices.value.splice(index, 1)
-            }
-          }
-          else{
-            if(indexAbnormal === -1){
-              abnormalDevices.value.push({
-                ...update,
-                lastUpdate: Date.now()
-              })
-            }
-            abnormalDevices.value[indexAbnormal] = {
-              ...update,
-              lastUpdate: Date.now()
-            }
-          }
-
-
-          const indexFault = faultTableData.value.findIndex(d => d.id === update.id)
-          if(update.status === 'online'){
-            if (indexFault !== -1) {
-              faultTableData.value.splice(indexFault, 1)
-            }
-          }else {
-            if (indexFault === -1) {
-              faultTableData.value.push({
-                ...update,
-                lastUpdate: Date.now()
-              })
-            } else {
-              faultTableData.value[indexFault] = {
-                ...update,
-                lastUpdate: Date.now()
-              }
-            }
-          }
-        })
-        console.log('设备状态更新成功')
-      }
-    } catch (error) {
-      console.error('解析消息失败:', error)
+        }
+      })
+      console.log('设备状态更新成功')
     }
-  })
-
-  ws.onClose(() => {
-    connectionStatus.value = 'disconnected'
-    console.log('❌ WebSocket 连接关闭')
-  })
-
-  ws.onError((error) => {
-    console.error('WebSocket 错误:', error)
-  })
-
-  ws.onReconnect((attempts) => {
-    reconnectAttempts.value = attempts
-    console.log(`🔄 第 ${attempts} 次重连`)
-  })
-
-  ws.connect()
+  } catch (error) {
+    console.error('解析消息失败:', error)
+  }
 }
 
 
@@ -267,14 +242,24 @@ const getProgressColor = (percent) => {
   return '#ff4d4f'
 }
 
+const dispatchVisible = ref(false)
+
+function openDispatchModal() {
+    dispatchVisible.value = true
+}
+
+function handleFaultTableDataUpdate(records){
+  records.forEach(item => {
+    const index = faultTableData.value.findIndex(alarm => alarm.alarmId === item.alarmId)
+    faultTableData.value[index] = item
+  })
+}
+
 let timeInterval = null
 
 
 onMounted(() => {
-
-
-
-  connectWebSocket()
+  addOnMessage('handleBoard',handleAlarmListUpdate)
 
   initStatusChart()
   initTrendChart()
@@ -291,9 +276,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (ws) {
-    ws.close()
-  }
+  removeOnMessage('handleBoard')
 
   statusChart.dispose()
   trendChart.dispose()
@@ -444,7 +427,11 @@ watch(workshopDevices,(newData) => {
       <div class="table-container">
         <div class="table-header">
           <h3 class="table-title">📋 设备故障信息列表</h3>
-          <a-badge :count="faultTableData.length" :overflow-count="99" />
+          <div class="table-actions">
+            <a-button @click="openDispatchModal" type="primary">派单</a-button>
+            <a-badge :count="faultTableData.length" :overflow-count="99" />
+          </div>
+
         </div>
         <a-table
             :columns="[
@@ -515,6 +502,10 @@ watch(workshopDevices,(newData) => {
       </div>
     </div>
   </div>
+
+  <a-modal v-model:open="dispatchVisible" title="📋 工单派单管理" width="80%" :footer="null">
+    <ReportDispatch :alarmList = "faultTableData" @update:faultTableData="handleFaultTableDataUpdate"></ReportDispatch>
+  </a-modal>
 </template>
 
 <style scoped>
@@ -939,6 +930,12 @@ watch(workshopDevices,(newData) => {
   font-weight: 600;
   margin: 0;
   color: #000;
+}
+
+.table-actions{
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .footer-info {

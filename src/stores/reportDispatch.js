@@ -4,27 +4,7 @@ import {message} from "ant-design-vue";
 
 export const reportStore =  defineStore('report', () => {
 
-    const alarmList = ref([])
     const userList = ref( [])
-
-    async function getAlarmList() {
-        try {
-            const response = await fetch('/api/report/getAlarmList')
-            const result = await response.json()
-            if (result.code === 200){
-                alarmList.value = result.data.alarmList.map(e =>{
-                    return {
-                        ...e,
-                        dispatchStatus: e.dispatchStatus|| 'unhandled',
-                    }
-                })
-            }else {
-                message.error('获取告警列表失败')
-            }
-        } catch (error) {
-            console.log( error)
-        }
-    }
 
     async function getUserList(){
         try {
@@ -59,11 +39,8 @@ export const reportStore =  defineStore('report', () => {
             })
             const result = await response.json()
             if (result.code === 200){
-                result.data.dispatchList.forEach(item => {
-                    const index = alarmList.value.findIndex(alarm => alarm.id === item.id)
-                    alarmList.value[index] = item
-                })
                 message.success('派单成功')
+                return true
             }else {
                 message.error('派单失败')
             }
@@ -74,9 +51,7 @@ export const reportStore =  defineStore('report', () => {
     }
 
     return {
-        alarmList,
         userList,
-        getAlarmList,
         sendDispatchList,
         getUserList
     }

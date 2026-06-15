@@ -16,7 +16,7 @@ class HeartbeatWebSocket {
     this.maxReconnectAttempts = options.maxReconnectAttempts || 10
     this.heartbeatTimeout = options.heartbeatTimeout || 10000
 
-    this.isConnected = ref(false)
+    this.isConnected = false
     this.reconnectAttempts = 0
     this.isManualClose = false
     this.heartbeatPongReceived = true
@@ -41,7 +41,7 @@ class HeartbeatWebSocket {
 
       this.ws.onopen = (event) => {
         console.log('WebSocket 连接成功')
-        this.isConnected.value = true
+        this.isConnected = true
         this.reconnectAttempts = 0
         this.startHeartbeat()
 
@@ -65,7 +65,7 @@ class HeartbeatWebSocket {
 
       this.ws.onclose = (event) => {
         console.log('WebSocket 连接关闭', event.code, event.reason)
-        this.isConnected.value = false
+        this.isConnected = false
         this.stopHeartbeat()
 
         if (this.onCloseCallback) {
@@ -94,7 +94,7 @@ class HeartbeatWebSocket {
     this.stopHeartbeat()
 
     this.heartbeatTimer = setInterval(() => {
-      if (!this.isConnected.value) {
+      if (!this.isConnected) {
         this.stopHeartbeat()
         return
       }

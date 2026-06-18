@@ -4,6 +4,7 @@ import Login from "../pages/Login.vue";
 import Home from "../pages/Home.vue";
 import Board from "../pages/Board.vue";
 import ReportDispatch from "../pages/ReportDispatch.vue";
+import DigitalBoard from "../pages/DigitalBoard.vue";
 // import Graph from "../pages/Graph.vue";
 
 const routes = [
@@ -12,6 +13,7 @@ const routes = [
     { path: '/home', component: Home },
     { path: '/board', component: Board },
     { path: '/reportDispatch', component: ReportDispatch },
+    { path: '/digitalBoard', component: DigitalBoard },
     // { path: '/graph', component: Graph },
 ]
 

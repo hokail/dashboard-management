@@ -9,6 +9,7 @@ import {storeToRefs} from "pinia";
 
 import {socketStore} from "../stores/mockSocketStore.js";
 import ReportDispatch from "./ReportDispatch.vue";
+import DigitalBoard from "./DigitalBoard.vue";
 
 const useSocketState = socketStore()
 
@@ -299,10 +300,12 @@ watch(deviceStatusData ,(newData) => {
 watch(workshopDevices,(newData) => {
 
 }, {deep: true})
+
+const showDigitalBoard = ref(false)
 </script>
 
 <template>
-  <div class="dashboard-container">
+  <div v-show="!showDigitalBoard" class="dashboard-container">
     <div class="top-section">
       <div class="header-bar">
         <div class="title-area">
@@ -315,6 +318,7 @@ watch(workshopDevices,(newData) => {
             <a-select-option value="week">本周</a-select-option>
             <a-select-option value="month">本月</a-select-option>
           </a-select>
+          <a-button  @click="showDigitalBoard = true">3D</a-button>
           <a-button @click="handleRefresh" size="small">🔄 刷新</a-button>
           <div class="device-count">
             <a-statistic title="设备总数" :value="totalDevices" :value-style="{ color: '#667eea', fontSize: '16px' }" />
@@ -502,7 +506,12 @@ watch(workshopDevices,(newData) => {
       </div>
     </div>
   </div>
-
+  <DigitalBoard
+    v-show="showDigitalBoard"
+    :deviceList="workshopDevices"
+    :alarmList="faultTableData"
+    @update:showDigitalBoard="showDigitalBoard = $event"
+  ></DigitalBoard>
   <a-modal v-model:open="dispatchVisible" title="📋 工单派单管理" width="80%" :footer="null" :maskClosable="false">
     <ReportDispatch :alarmList = "faultTableData" @update:faultTableData="handleFaultTableDataUpdate"></ReportDispatch>
   </a-modal>

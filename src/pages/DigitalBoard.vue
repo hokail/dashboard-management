@@ -169,7 +169,7 @@ async function init() {
   renderer.setPixelRatio(window.devicePixelRatio)
 
   renderer.toneMapping = THREE.ACESFilmicToneMapping; // 使用胶片色调映射，让高光更柔和
-  renderer.toneMappingExposure = 0.8; // 控制整体曝光，保持画面明亮
+  renderer.toneMappingExposure = 1; // 控制整体曝光，保持画面明亮
 
   container.value.appendChild(renderer.domElement)
 
@@ -276,6 +276,125 @@ async function init() {
   composer.addPass(outputPass);
 }
 
+// 根据不同类型的设备，使用组合模型替代简单的正方体
+function createMachineModel(type, status) {
+  const group = new THREE.Group()
+
+  const bodyColor = 0xffffff
+  const lightColor =  0x00ff88
+
+  // === 机台底座 ===
+  const baseGeo = new THREE.BoxGeometry(2, 0.3, 1.8)
+  const baseMat = new THREE.MeshPhysicalMaterial({
+    color: 0x000000, metalness: 0.1, roughness: 0.1, emissive: 0x000000
+  })
+  const base = new THREE.Mesh(baseGeo, baseMat)
+  base.position.y = 0.15
+  group.add(base)
+
+  // === 机身主体 ===
+  const bodyGeo = new THREE.BoxGeometry(1.8, 1.2, 1.6)
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    color: bodyColor, metalness: 0.5, roughness: 0.4, emissive: 0x000000
+  })
+  const body = new THREE.Mesh(bodyGeo, bodyMat)
+  body.position.y = 0.9
+  group.add(body)
+
+  // === 顶部结构（根据类型不同） ===
+  if (type === 'CNC机床' || type === '冲压机') {
+
+    const pillarGeo = new THREE.BoxGeometry(0.3, 1.0, 1.6)
+    const pillarMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.6, roughness: 0.3, emissive: 0x000000
+    })
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat)
+    pillar.position.set(0.75, 2.0, 0)
+    group.add(pillar)
+
+    // 横梁
+    const beamGeo = new THREE.BoxGeometry(1.8, 0.25, 0.4)
+    const beam = new THREE.Mesh(beamGeo, pillarMat)
+    beam.position.set(0, 1.75, 0)
+    group.add(beam)
+  } else if (type === '注塑机') {
+    // 圆筒
+    const barrelGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.6, 16)
+    const barrelMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.7, roughness: 0.2,
+    })
+    const barrel = new THREE.Mesh(barrelGeo, barrelMat)
+    barrel.rotation.z = Math.PI / 2
+    barrel.position.set(0, 1.8, 0)
+    group.add(barrel)
+  } else if (type === '焊接机器人') {
+    // 机械臂底座
+    const armBaseGeo = new THREE.CylinderGeometry(0.4, 0.5, 0.4, 16)
+    const armBaseMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.7, roughness: 0.3,
+    })
+    const armBase = new THREE.Mesh(armBaseGeo, armBaseMat)
+    armBase.position.set(0, 1.7, 0)
+    group.add(armBase)
+
+    // 机械臂第一段
+    const arm1Geo = new THREE.BoxGeometry(0.25, 0.8, 0.25)
+    const arm1 = new THREE.Mesh(arm1Geo, armBaseMat)
+    arm1.position.set(0, 2.3, 0)
+    group.add(arm1)
+
+    // 机械臂第二段
+    const arm2Geo = new THREE.BoxGeometry(0.8, 0.2, 0.2)
+    const arm2 = new THREE.Mesh(arm2Geo, armBaseMat)
+    arm2.position.set(0.3, 2.7, 0)
+    group.add(arm2)
+  } else {
+    // 传送带结构
+    const beltGeo = new THREE.BoxGeometry(2.2, 0.15, 0.8)
+    const beltMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.3, roughness: 1, emissive: 0x000000
+    })
+    const belt = new THREE.Mesh(beltGeo, beltMat)
+    belt.position.set(0, 1.55, 0)
+    group.add(belt)
+  }
+
+  // === 操作面板（小屏幕） ===
+  const screenGeo = new THREE.BoxGeometry(0.5, 0.4, 0.05)
+  const screenMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0a0eff, emissive: 0x003366, emissiveIntensity: 5.5,
+    metalness: 0.1, roughness: 0.1
+  })
+  const screen = new THREE.Mesh(screenGeo, screenMat)
+  screen.position.set(0.5, 1.4, 0.82)
+  group.add(screen)
+
+  // === 状态指示灯 ===
+  const lightGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.3, 16)
+  const lightMat = new THREE.MeshPhysicalMaterial({
+    color: lightColor,
+    emissive: lightColor,
+    emissiveIntensity: 2.4,
+    roughness: 0.25,
+    metalness: 0.4,
+  })
+  const lightMesh = new THREE.Mesh(lightGeo, lightMat)
+  lightMesh.name = 'statusLight'
+  lightMesh.position.set(-0.7, 1.7, -0.6)
+  group.add(lightMesh)
+
+  // === 指示灯底座 ===
+  const lBaseGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.06, 16)
+  const lBaseMat = new THREE.MeshPhysicalMaterial({
+    color: 0x333333, metalness: 0.8, roughness: 0.2, emissive: 0x000000
+  })
+  const lBase = new THREE.Mesh(lBaseGeo, lBaseMat)
+  lBase.position.set(-0.7, 1.53, -0.6)
+  group.add(lBase)
+
+  return group
+}
+
 function renderDeviceList(){
 
   renderList.forEach(mesh => {
@@ -284,18 +403,8 @@ function renderDeviceList(){
   renderList = []
 
   deviceList.value.forEach(device => {
-    const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 2, 2),
-        new THREE.MeshPhysicalMaterial({
-          color: 0xffffff ,
-          transparent: false,
-          opacity: 1,
-          side: THREE.DoubleSide,
-          roughness: 0.1,
-          metalness: 0.1,
-          emissive: 0x000000,
-        })
-    )
+
+    const mesh = createMachineModel(device.type, device.status)
 
     mesh.deviceData = {
       id: device.id,
@@ -306,33 +415,7 @@ function renderDeviceList(){
       originalY: device.y,
     }
 
-    const baseGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.08, 16)
-    const baseMat = new THREE.MeshPhysicalMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.2 , emissive: 0x000000,   })
-    const base = new THREE.Mesh(baseGeo, baseMat)
-    base.position.set(-0.7,1.04,-0.7)
-
-    mesh.add(base)
-
-    const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.2, 8)
-    const poleMat = new THREE.MeshPhysicalMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.3 , emissive: 0x000000,   })
-    const pole = new THREE.Mesh(poleGeo, poleMat)
-    pole.position.set(-0.7,1.14,-0.7)
-    mesh.add(pole)
-
-    const lightGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.8, 16)
-    const lightMat = new THREE.MeshPhysicalMaterial({
-      color: 0x00ff00,
-      emissive: 0x00ff00,        // 自发光的颜色
-      emissiveIntensity: 2.4,     // 高亮度，确保超过阈值
-      roughness: 0.25,
-      metalness: 0.4,
-    })
-    const lightMesh = new THREE.Mesh(lightGeo, lightMat)
-    lightMesh.position.set(-0.7,1.6,-0.7)
-    lightMesh.name = 'statusLight'
-    mesh.add(lightMesh)
-
-    mesh.position.set(device.x *25/8 + 1.5, 1, device.y * 15/5 + 1.5)
+    mesh.position.set(device.x * 25 / 8 + 1.5, 0, device.y * 15 / 5 + 1.5)
 
     scene.add(mesh)
     renderList.push(mesh)

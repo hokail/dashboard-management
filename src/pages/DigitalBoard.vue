@@ -114,9 +114,20 @@ let container_mesh
 let renderList = []
 let timeInterval = null
 let cursorControl = null
+
 const hoveredDevice = ref(null)
 const selectedDevice = ref(null)
 const tooltipPosition = ref({ x: 0, y: 0 })
+
+// 创建一个时钟用于获取精确时间
+const clock = new THREE.Clock();
+
+// 模拟呼吸灯的参数（默认值）
+const breathParams = {
+  speed: 10,        // 呼吸速度
+  minIntensity: 3.5, // 最暗时的强度（必须高于阈值 0.85，否则辉光会消失）
+  maxIntensity: 6.5, // 最亮时的强度
+};
 
 const onlineCount = computed(() => {
   return deviceList.value.filter(d => d.status === 'online').length || 0
@@ -148,6 +159,7 @@ onUnmounted(() => {
     cursorControl.dispose()
   }
 })
+
 
 async function init() {
   // 1. 创建场景
@@ -281,7 +293,7 @@ function createMachineModel(type, status) {
   const group = new THREE.Group()
 
   const bodyColor = 0xffffff
-  const lightColor =  0x00ff88
+  const lightColor = status === 'online' ? 0x00ff88 : 0x000000
 
   // === 机台底座 ===
   const baseGeo = new THREE.BoxGeometry(2, 0.3, 1.8)
@@ -371,10 +383,11 @@ function createMachineModel(type, status) {
 
   // === 状态指示灯 ===
   const lightGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.3, 16)
-  const lightMat = new THREE.MeshPhysicalMaterial({
+  //lightMat 将自发光强度设置成动态，模拟呼吸灯效果
+  let lightMat = new THREE.MeshPhysicalMaterial({
     color: lightColor,
     emissive: lightColor,
-    emissiveIntensity: 2.4,
+    emissiveIntensity: 2.4,//自发光强度
     roughness: 0.25,
     metalness: 0.4,
   })
@@ -425,6 +438,9 @@ function renderDeviceList(){
 function updateAlarmDevice(){
   alarmList.value.forEach(alarm => {
     const mesh = renderList.find(mesh => mesh.deviceData.id === alarm.id)
+    mesh.deviceData = {
+      ...alarm,
+    }
     if (mesh) {
       const statusLight = mesh.getObjectByName('statusLight')
       if(alarm.status === 'online'){
@@ -436,7 +452,9 @@ function updateAlarmDevice(){
       }else if(alarm.status === 'error'){
         statusLight.material.color.set(0xff0000)
         statusLight.material.emissive.set(0xff0000)
-
+      }else if(alarm.status === 'offline'){
+        statusLight.material.color.set(0x000000)
+        statusLight.material.emissive.set(0x000000)
       }
     }
   })
@@ -461,6 +479,22 @@ function animate() {
   renderer.render(scene, camera)
 
   composer.render();
+
+  // 获取从页面加载开始的总秒数
+  const elapsedTime = clock.getElapsedTime();
+
+  // ----- 核心呼吸算法 -----
+  // 使用正弦波生成 -1 ~ 1 的值，再映射到 0 ~ 1 之间
+  // 公式: (Math.sin(time * speed) + 1) / 2
+  // 然后映射到 [minIntensity, maxIntensity] 区间
+  // 将计算出的强度赋值给材质
+  const t = (Math.sin(elapsedTime * breathParams.speed) + 1) / 2;
+  renderList.forEach(e=>{
+    if(e.deviceData.status !== 'online'){
+      let statusLight = e.getObjectByName('statusLight')
+      statusLight.material.emissiveIntensity = breathParams.minIntensity + t * (breathParams.maxIntensity - breathParams.minIntensity);
+    }
+  })
 }
 
 function handleResize() {

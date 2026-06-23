@@ -43,10 +43,10 @@ export default [
                 message: 'success',
                 data: {
                     abnormalDevices: [
-                        { alarmId:'1',id: 'D003', name: 'CNC-03', type: 'CNC机床', status: 'fault', location: '车间A-3', errorCode: 'E-301', errorDesc: '主轴温度过高', duration: '2小时15分', priority: 'medium' },
-                        { alarmId:'2',id: 'D013', name: '注塑-05', type: '注塑机', status: 'fault', location: '车间B-7', errorCode: 'W-102', errorDesc: '液压油压力异常', duration: '45分钟', priority: 'medium' },
-                        { alarmId:'3',id: 'D023', name: '冲压-07', type: '冲压机', status: 'fault', location: '车间A-9', errorCode: 'E-205', errorDesc: '模具卡死', duration: '1小时30分', priority: 'medium' },
-                        { alarmId:'4',id: 'D035', name: '装配-03', type: '装配线', status: 'fault', location: '车间B-4', errorCode: 'E-110', errorDesc: '传送带偏移', duration: '3小时', priority: 'medium' },
+                        { alarmId:'1',id: 'D003', name: 'CNC-03', type: 'CNC机床', status: 'error', location: '车间A-3', errorCode: 'E-301', errorDesc: '主轴温度过高', duration: '2小时15分', priority: 'medium' },
+                        { alarmId:'2',id: 'D013', name: '注塑-05', type: '注塑机', status: 'error', location: '车间B-7', errorCode: 'W-102', errorDesc: '液压油压力异常', duration: '45分钟', priority: 'medium' },
+                        { alarmId:'3',id: 'D023', name: '冲压-07', type: '冲压机', status: 'error', location: '车间A-9', errorCode: 'E-205', errorDesc: '模具卡死', duration: '1小时30分', priority: 'medium' },
+                        { alarmId:'4',id: 'D035', name: '装配-03', type: '装配线', status: 'error', location: '车间B-4', errorCode: 'E-110', errorDesc: '传送带偏移', duration: '3小时', priority: 'medium' },
                         { alarmId:'5',id: 'D011', name: '注塑-03', type: '注塑机', status: 'warning', location: '车间C-5', errorCode: 'W-201', errorDesc: '包装材料不足', duration: '15分钟', priority: 'high' },
                         { alarmId:'6',id: 'D027', name: '焊接-03', type: '焊接机器人', status: 'warning', location: '车间C-2', errorCode: 'W-308', errorDesc: '焊丝送丝不畅', duration: '20分钟', priority: 'high' }
                     ],
@@ -66,7 +66,7 @@ export default [
                     workshopDevices: [
                         { id: 'D001', name: 'CNC-01', type: 'CNC机床', status: 'online', x: 0, y: 0 },
                         { id: 'D002', name: 'CNC-02', type: 'CNC机床', status: 'online', x: 1, y: 0 },
-                        { id: 'D003', name: 'CNC-03', type: 'CNC机床', status: 'fault', x: 2, y: 0 },
+                        { id: 'D003', name: 'CNC-03', type: 'CNC机床', status: 'error', x: 2, y: 0 },
                         { id: 'D004', name: 'CNC-04', type: 'CNC机床', status: 'online', x: 3, y: 0 },
                         { id: 'D005', name: 'CNC-05', type: 'CNC机床', status: 'online', x: 4, y: 0 },
                         { id: 'D006', name: 'CNC-06', type: 'CNC机床', status: 'online', x: 5, y: 0 },
@@ -77,7 +77,7 @@ export default [
                         { id: 'D010', name: '注塑-02', type: '注塑机', status: 'online', x: 1, y: 1 },
                         { id: 'D011', name: '注塑-03', type: '注塑机', status: 'warning', x: 2, y: 1 },
                         { id: 'D012', name: '注塑-04', type: '注塑机', status: 'online', x: 3, y: 1 },
-                        { id: 'D013', name: '注塑-05', type: '注塑机', status: 'fault', x: 4, y: 1 },
+                        { id: 'D013', name: '注塑-05', type: '注塑机', status: 'error', x: 4, y: 1 },
                         { id: 'D014', name: '注塑-06', type: '注塑机', status: 'online', x: 5, y: 1 },
                         { id: 'D015', name: '注塑-07', type: '注塑机', status: 'online', x: 6, y: 1 },
                         { id: 'D016', name: '注塑-08', type: '注塑机', status: 'online', x: 7, y: 1 },
@@ -88,7 +88,7 @@ export default [
                         { id: 'D020', name: '冲压-04', type: '冲压机', status: 'online', x: 3, y: 2 },
                         { id: 'D021', name: '冲压-05', type: '冲压机', status: 'online', x: 4, y: 2 },
                         { id: 'D022', name: '冲压-06', type: '冲压机', status: 'online', x: 5, y: 2 },
-                        { id: 'D023', name: '冲压-07', type: '冲压机', status: 'fault', x: 6, y: 2 },
+                        { id: 'D023', name: '冲压-07', type: '冲压机', status: 'error', x: 6, y: 2 },
                         { id: 'D024', name: '冲压-08', type: '冲压机', status: 'online', x: 7, y: 2 },
 
                         { id: 'D025', name: '焊接-01', type: '焊接机器人', status: 'online', x: 0, y: 3 },
@@ -102,7 +102,7 @@ export default [
 
                         { id: 'D033', name: '装配-01', type: '装配线', status: 'online', x: 0, y: 4 },
                         { id: 'D034', name: '装配-02', type: '装配线', status: 'online', x: 1, y: 4 },
-                        { id: 'D035', name: '装配-03', type: '装配线', status: 'fault', x: 2, y: 4 },
+                        { id: 'D035', name: '装配-03', type: '装配线', status: 'error', x: 2, y: 4 },
                         { id: 'D036', name: '装配-04', type: '装配线', status: 'online', x: 3, y: 4 },
                         { id: 'D037', name: '装配-05', type: '装配线', status: 'online', x: 4, y: 4 },
                         { id: 'D038', name: '装配-06', type: '装配线', status: 'online', x: 5, y: 4 },

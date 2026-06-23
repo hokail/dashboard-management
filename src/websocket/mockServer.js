@@ -220,6 +220,7 @@ class MockWebSocketServer {
                     delete device.errorCode
                     delete device.errorDesc
                     delete device.startTime
+                    delete device.alarmId
                 }
             // }
 

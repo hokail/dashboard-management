@@ -1,5 +1,32 @@
 import * as THREE from 'three'
 
+//获取某个模型的的父级group，可以指定targetName
+function findParentGroup(object, targetName = null) {
+    let current = object;
+
+    // 从当前物体开始，不断向上查找父级
+    while (current.parent) {
+        // 如果父级是一个 Group
+        if (current.parent.isGroup) {
+            // 如果没有指定名称，直接返回这个 Group
+            if (!targetName) {
+                return current.parent;
+            }
+            // 如果指定了名称，检查名称是否匹配
+            if (current.parent.name === targetName) {
+                return current.parent;
+            }
+        }
+        // 如果到达场景根节点 (Scene)，停止循环，防止死循环
+        if (current.parent.isScene) {
+            break;
+        }
+        // 继续向上
+        current = current.parent;
+    }
+    return null;
+}
+
 class CursorControl {
     constructor(camera, renderer, scene, targetModels) {
         this.camera = camera;
@@ -20,7 +47,7 @@ class CursorControl {
         // this.renderer.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
         // this.renderer.domElement.addEventListener('dblclick', this.onDoubleClick.bind(this))
     }
-     onClick(event, callback) {
+     onClick(event) {
 
         // --- 步骤一：坐标转换 ---
         // 获取鼠标点击位置的像素坐标
@@ -50,8 +77,8 @@ class CursorControl {
 
         // 如果 intersects 数组不为空，说明点击到了模型
         if (intersects.length > 0) {
-            // 获取第一个被点击到的模型对象
-            this.selectedModel = intersects[0].object;
+            // 获取第一个被点击到的模型对象,并通过findParentGroup找到最外层的group
+            this.selectedModel = findParentGroup(intersects[0].object)
             // 执行你的交互逻辑，例如改变颜色[reference:21][reference:22]
             this.highlightObject(this.selectedModel)
 
@@ -79,35 +106,11 @@ class CursorControl {
     }
 
     highlightObject(object) {
-        console.log(object.deviceData)
-        if (object.material.emissive) {
-            object.currentEmissiveIntensity = object.material.emissiveIntensity
-            object.material.emissiveIntensity = object.currentEmissiveIntensity * 1.5
-        }
 
-        if (object.children) {
-            const edges = object.children.find(child => child.isLineSegments)
-            if (edges) {
-                edges.material.opacity = 1
-                edges.material.linewidth = 3
-            }
-        }
     }
 
     restoreObjectMaterial(object) {
-        if (object.material.emissive && object.currentEmissiveIntensity !== undefined) {
-            object.material.emissiveIntensity = object.currentEmissiveIntensity
-        }
 
-        object.scale.set(1, 1, 1)
-
-        if (object.children) {
-            const edges = object.children.find(child => child.isLineSegments)
-            if (edges) {
-                edges.material.opacity = 0.8
-                edges.material.linewidth = 2
-            }
-        }
     }
 
     dispose() {

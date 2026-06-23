@@ -21,12 +21,37 @@ const {abnormalDevices,workshopDevices,faultTableData,keyMetrics,trendData,devic
 
 const {getBoardData} = useBoardState
 
+
+
+
+const statusChartRef = ref(null)
+const trendChartRef = ref(null)
+
+//用于向digitalBoard传递更新数据
+const updatesDeviceList = ref([])
+
+let statusChart = null
+let trendChart = null
+
+const currentTime = ref(new Date().toLocaleString('zh-CN'))
+const selectedTimeRange = ref('today')
+
+const systemInfo = ref({
+  version: 'v2.1.0',
+  uptime: '45天12小时30分',
+  cpuUsage: 32.5,
+  memoryUsage: 68.2,
+  networkStatus: '正常'
+})
+
 function handleAlarmListUpdate(event) {
   try {
     const message = JSON.parse(event.data)
 
     if (message.type === 'device-status') {
       const updates = Array.isArray(message.data) ? message.data : [message.data]
+
+      updatesDeviceList.value = updates
 
       updates.forEach(update => {
         const index = workshopDevices.value.findIndex(d => d.id === update.id)
@@ -81,29 +106,11 @@ function handleAlarmListUpdate(event) {
     console.error('解析消息失败:', error)
   }
 }
-
-
-const statusChartRef = ref(null)
-const trendChartRef = ref(null)
-let statusChart = null
-let trendChart = null
-
-const currentTime = ref(new Date().toLocaleString('zh-CN'))
-const selectedTimeRange = ref('today')
-
-const systemInfo = ref({
-  version: 'v2.1.0',
-  uptime: '45天12小时30分',
-  cpuUsage: 32.5,
-  memoryUsage: 68.2,
-  networkStatus: '正常'
-})
-
 const totalDevices = computed(() => {
   return Object.values(deviceStatusData.value).reduce((sum, count) => sum + count, 0)
 })
 
-const initStatusChart = () => {
+function initStatusChart() {
   statusChart = echarts.init(statusChartRef.value)
   const option = {
     tooltip: {
@@ -156,7 +163,7 @@ const initStatusChart = () => {
   statusChart.setOption(option)
 }
 
-const initTrendChart = () => {
+function initTrendChart(){
   trendChart = echarts.init(trendChartRef.value)
   const option = {
     tooltip: {
@@ -509,7 +516,7 @@ const showDigitalBoard = ref(true)
   <DigitalBoard
     v-show="showDigitalBoard"
     :deviceList="workshopDevices"
-    :alarmList="faultTableData"
+    :updateList="updatesDeviceList"
     @update:showDigitalBoard="showDigitalBoard = $event"
   ></DigitalBoard>
   <a-modal v-model:open="dispatchVisible" title="📋 工单派单管理" width="80%" :footer="null" :maskClosable="false">

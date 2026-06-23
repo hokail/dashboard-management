@@ -26,6 +26,10 @@
           <span class="stats-value online">{{ onlineCount }}</span>
         </div>
         <div class="stats-item">
+          <span class="stats-label">离线</span>
+          <span class="stats-value offline">{{ offlineCount }}</span>
+        </div>
+        <div class="stats-item">
           <span class="stats-label">告警</span>
           <span class="stats-value alarm">{{ alarmCount }}</span>
         </div>
@@ -99,12 +103,12 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 const props = defineProps({
   deviceList: Array,
-  alarmList: Array
+  updateList: Array
 })
 
 const emit = defineEmits(['update:showDigitalBoard'])
 
-const {deviceList, alarmList} = toRefs(props)
+const {deviceList, updateList} = toRefs(props)
 
 const container = ref(null)
 const currentTime = ref(new Date().toLocaleString('zh-CN'))
@@ -130,15 +134,35 @@ const breathParams = {
 };
 
 const onlineCount = computed(() => {
-  return deviceList.value.filter(d => d.status === 'online').length || 0
+  return deviceList.value.filter(d => d.status !== 'offline').length - updateList.value.length
+})
+
+const offlineCount = computed(() => {
+  return deviceList.value.filter(d => d.status === 'offline').length || 0
 })
 
 const alarmCount = computed(() => {
-  return deviceList.value.filter(d => d.status === 'error' || d.status === 'warning').length || 0
+  return updateList.value.length || 0
 })
 
 function handleBack() {
   emit('update:showDigitalBoard', false)
+}
+
+//设备状态颜色
+function getStatusColor(status){
+  switch (status) {
+    case  'online':
+      return 0x00ff88
+    case 'warning':
+      return 0xffff00
+    case 'error':
+      return 0xff0000
+    case 'offline':
+      return 0xffffff
+    default:
+      return 0xffffff
+  }
 }
 
 onMounted(() => {
@@ -293,7 +317,8 @@ function createMachineModel(type, status) {
   const group = new THREE.Group()
 
   const bodyColor = 0xffffff
-  const lightColor = status === 'online' ? 0x00ff88 : 0x000000
+  const lightColor = getStatusColor(status)
+  const lightEmissiveIntensity = status === 'offline' ? 0 : 2.4
 
   // === 机台底座 ===
   const baseGeo = new THREE.BoxGeometry(2, 0.3, 1.8)
@@ -387,7 +412,7 @@ function createMachineModel(type, status) {
   let lightMat = new THREE.MeshPhysicalMaterial({
     color: lightColor,
     emissive: lightColor,
-    emissiveIntensity: 2.4,//自发光强度
+    emissiveIntensity: lightEmissiveIntensity,//自发光强度
     roughness: 0.25,
     metalness: 0.4,
   })
@@ -436,29 +461,21 @@ function renderDeviceList(){
 }
 
 function updateAlarmDevice(){
-  alarmList.value.forEach(alarm => {
-    const mesh = renderList.find(mesh => mesh.deviceData.id === alarm.id)
+  updateList.value.forEach(device => {
+    const mesh = renderList.find(mesh => mesh.deviceData.id === device.id)
     mesh.deviceData = {
-      ...alarm,
+      ...mesh.deviceData,
+      status: device.status,
+
     }
     if (mesh) {
       const statusLight = mesh.getObjectByName('statusLight')
-      if(alarm.status === 'online'){
-        statusLight.material.color.set(0x00ff00)
-        statusLight.material.emissive.set(0x00ff00)
-      }else if(alarm.status === 'warning'){
-        statusLight.material.color.set(0xffff00)
-        statusLight.material.emissive.set(0xffff00)
-      }else if(alarm.status === 'error'){
-        statusLight.material.color.set(0xff0000)
-        statusLight.material.emissive.set(0xff0000)
-      }else if(alarm.status === 'offline'){
-        statusLight.material.color.set(0x000000)
-        statusLight.material.emissive.set(0x000000)
-      }
+      statusLight.material.color.set(getStatusColor(device.status))
+      statusLight.material.emissive.set(getStatusColor(device.status))
     }
   })
 }
+
 
 watch( deviceList,()=>{
   renderDeviceList()
@@ -467,9 +484,14 @@ watch( deviceList,()=>{
   }
 
   cursorControl = new CursorControl(camera, renderer, scene, renderList)
+
+  cursorControl.addClickCallbacks( () => {
+    selectedDevice.value = cursorControl.selectedModel.deviceData
+  })
+
 })
 
-watch(alarmList,()=>{
+watch(updateList,()=>{
   updateAlarmDevice()
 },{deep: true})
 
@@ -490,7 +512,7 @@ function animate() {
   // 将计算出的强度赋值给材质
   const t = (Math.sin(elapsedTime * breathParams.speed) + 1) / 2;
   renderList.forEach(e=>{
-    if(e.deviceData.status !== 'online'){
+    if(e.deviceData.status !== 'online' && e.deviceData.status !== 'offline'){
       let statusLight = e.getObjectByName('statusLight')
       statusLight.material.emissiveIntensity = breathParams.minIntensity + t * (breathParams.maxIntensity - breathParams.minIntensity);
     }
@@ -693,6 +715,12 @@ function getStatusText(status) {
   color: #ff4d4f;
   text-shadow: 0 0 10px rgba(255, 77, 79, 0.8);
   animation: blink 1.5s ease-in-out infinite;
+}
+
+.stats-value.offline {
+  color: #828282;
+  text-shadow: 0 0 10px rgba(156, 156, 156, 0.8);
+
 }
 
 @keyframes blink {

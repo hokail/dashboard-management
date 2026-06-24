@@ -30,11 +30,11 @@
           <span class="stats-value offline">{{ offlineCount }}</span>
         </div>
         <div class="stats-item">
-          <span class="stats-label">告警</span>
+          <span class="stats-label">报警</span>
           <span class="stats-value alarm">{{ alarmCount }}</span>
         </div>
         <a-button @click="handleBack" class="back-btn" >
-          ← 返回2D
+          返回2D
         </a-button>
       </div>
     </div>
@@ -128,13 +128,14 @@ const clock = new THREE.Clock();
 
 // 模拟呼吸灯的参数（默认值）
 const breathParams = {
-  speed: 10,        // 呼吸速度
+  speedOfWarning: 10,        // 呼吸速度
+  speedOfError: 15,        // 呼吸速度
   minIntensity: 3.5, // 最暗时的强度（必须高于阈值 0.85，否则辉光会消失）
   maxIntensity: 6.5, // 最亮时的强度
 };
 
 const onlineCount = computed(() => {
-  return deviceList.value.filter(d => d.status !== 'offline').length - updateList.value.length
+  return deviceList.value.filter(d => d.status === 'online').length || 0
 })
 
 const offlineCount = computed(() => {
@@ -142,7 +143,7 @@ const offlineCount = computed(() => {
 })
 
 const alarmCount = computed(() => {
-  return updateList.value.length || 0
+  return deviceList.value.filter(d => d.status === 'error' || d.status === 'warning' ).length || 0
 })
 
 function handleBack() {
@@ -343,7 +344,7 @@ function createMachineModel(type, status) {
 
     const pillarGeo = new THREE.BoxGeometry(0.3, 1.0, 1.6)
     const pillarMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff, metalness: 0.6, roughness: 0.3, emissive: 0x000000
+      color: 0xffffff, metalness: 0.6, roughness: 0.3,
     })
     const pillar = new THREE.Mesh(pillarGeo, pillarMat)
     pillar.position.set(0.75, 2.0, 0)
@@ -351,7 +352,11 @@ function createMachineModel(type, status) {
 
     // 横梁
     const beamGeo = new THREE.BoxGeometry(1.8, 0.25, 0.4)
-    const beam = new THREE.Mesh(beamGeo, pillarMat)
+    //材质不要使用同一个材质。否则在高亮操作时，修改A的材质变为高亮后，会导致B的“原始材质”一起变为高亮材质，导致B的原始材质丢失，无法重置高亮效果
+    const beamMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.6, roughness: 0.3,
+    })
+    const beam = new THREE.Mesh(beamGeo, beamMat)
     beam.position.set(0, 1.75, 0)
     group.add(beam)
   } else if (type === '注塑机') {
@@ -376,13 +381,19 @@ function createMachineModel(type, status) {
 
     // 机械臂第一段
     const arm1Geo = new THREE.BoxGeometry(0.25, 0.8, 0.25)
-    const arm1 = new THREE.Mesh(arm1Geo, armBaseMat)
+    const arm1Mat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.7, roughness: 0.3,
+    })
+    const arm1 = new THREE.Mesh(arm1Geo, arm1Mat)
     arm1.position.set(0, 2.3, 0)
     group.add(arm1)
 
     // 机械臂第二段
     const arm2Geo = new THREE.BoxGeometry(0.8, 0.2, 0.2)
-    const arm2 = new THREE.Mesh(arm2Geo, armBaseMat)
+    const arm2Mat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.7, roughness: 0.3,
+    })
+    const arm2 = new THREE.Mesh(arm2Geo, arm2Mat)
     arm2.position.set(0.3, 2.7, 0)
     group.add(arm2)
   } else {
@@ -510,10 +521,12 @@ function animate() {
   // 公式: (Math.sin(time * speed) + 1) / 2
   // 然后映射到 [minIntensity, maxIntensity] 区间
   // 将计算出的强度赋值给材质
-  const t = (Math.sin(elapsedTime * breathParams.speed) + 1) / 2;
+  const tWarning = (Math.sin(elapsedTime * breathParams.speedOfWarning) + 1) / 2;
+  const tError = (Math.sin(elapsedTime * breathParams.speedOfError) + 1) / 2;
   renderList.forEach(e=>{
-    if(e.deviceData.status !== 'online' && e.deviceData.status !== 'offline'){
-      let statusLight = e.getObjectByName('statusLight')
+    if(e.deviceData.status === 'warning' || e.deviceData.status === 'error'){
+      const t = e.deviceData.status === 'warning' ? tWarning : tError
+      const statusLight = e.getObjectByName('statusLight')
       statusLight.material.emissiveIntensity = breathParams.minIntensity + t * (breathParams.maxIntensity - breathParams.minIntensity);
     }
   })

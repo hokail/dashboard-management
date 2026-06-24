@@ -44,6 +44,7 @@ class CursorControl {
     init() {
         //bind改变this指向，this指向CursorControl，否则指向点击的对象
         this.renderer.domElement.addEventListener('click', this.onClick.bind(this))
+        this.renderer.domElement.addEventListener('contextmenu', this.onRightClick.bind(this))
         // this.renderer.domElement.addEventListener('mousemove', this.onMouseMove.bind(this))
         // this.renderer.domElement.addEventListener('dblclick', this.onDoubleClick.bind(this))
     }
@@ -78,19 +79,25 @@ class CursorControl {
         // 如果 intersects 数组不为空，说明点击到了模型
         if (intersects.length > 0) {
             // 获取第一个被点击到的模型对象,并通过findParentGroup找到最外层的group
-            this.selectedModel = findParentGroup(intersects[0].object)
+            const target = findParentGroup(intersects[0].object)
             // 执行你的交互逻辑，例如改变颜色[reference:21][reference:22]
-            this.highlightObject(this.selectedModel)
-
+            this.highlightObject(target)
             if(this.clickCallbacks.length){
                 this.clickCallbacks.forEach(cb => cb())
             }
 
         } else {
             if (this.selectedModel) {
-                this.restoreObjectMaterial(this.selectedModel)
+                this.restoreObjectMaterial()
                 this.selectedModel = null
             }
+        }
+    }
+
+    onRightClick(event){
+        if (this.selectedModel) {
+            this.restoreObjectMaterial()
+            this.selectedModel = null
         }
     }
 
@@ -105,16 +112,78 @@ class CursorControl {
         }
     }
 
-    highlightObject(object) {
+    highlightObject(target) {
+        // 1. 取消上一次的高亮
+        if (this.selectedModel) {
+            this.restoreObjectMaterial(target);
+        }
 
+        // 2. 处理点击目标（如果是Group，则处理所有子Mesh；如果是Mesh直接处理）
+        const meshes = [];
+        if (target.isGroup) {
+            target.children.forEach(child => {
+                if (child.isMesh && child.name !== 'statusLight' )
+                    meshes.push(child);
+            });
+        } else if (target.isMesh) {
+            meshes.push(target);
+        }
+
+        // 3. 应用高亮效果
+        meshes.forEach(mesh => {
+            // 保存原始 emissive 颜色和强度，以便取消高亮时恢复
+            mesh.userData.origEmissive = mesh.material.emissive.clone();
+            mesh.userData.origEmissiveIntensity = mesh.material.emissiveIntensity;
+
+            // 设置为亮眼的颜色（例如亮蓝色或橙色）
+            mesh.material.emissive.setHex(0x00aaff);
+            mesh.material.emissiveIntensity = 1;
+        });
+
+        // 4. 增加一个“浮起”或放大的效果（视觉上更突出）
+        if (target.isGroup) {
+            target.scale.set(1.1, 1.1, 1.1);
+        } else {
+            target.scale.set(1.1, 1.1, 1.1);
+        }
+
+        // 5. 存储当前高亮对象，并开启脉动动画
+        this.selectedModel = target;
     }
 
-    restoreObjectMaterial(object) {
+    restoreObjectMaterial() {
+        if(this.selectedModel){
+
+            const meshes = [];
+            if (this.selectedModel.isGroup) {
+                this.selectedModel.children.forEach(child => {
+                    if (child.isMesh && child.name !== 'statusLight' )
+                        meshes.push(child);
+                });
+            } else if (this.selectedModel.isMesh) {
+                meshes.push(this.selectedModel);
+            }
+
+            meshes.forEach(mesh => {
+                mesh.material.emissive.copy(mesh.userData.origEmissive);
+                mesh.material.emissiveIntensity = mesh.userData.origEmissiveIntensity;
+            })
+
+
+            if (this.selectedModel.isGroup) {
+                this.selectedModel.scale.set(1, 1, 1);
+            } else {
+                this.selectedModel.scale.set(1, 1, 1);
+            }
+
+            this.selectedModel = null
+        }
 
     }
 
     dispose() {
         this.renderer.domElement.removeEventListener('click', this.onClick.bind(this))
+        this.renderer.domElement.removeEventListener('contextmenu', this.onRightClick.bind(this))
         // this.renderer.domElement.removeEventListener('mousemove', this.onMouseMove.bind(this))
         // this.renderer.domElement.removeEventListener('dblclick', this.onDoubleClick.bind(this))
     }

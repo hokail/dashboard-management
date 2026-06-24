@@ -34,7 +34,18 @@ let statusChart = null
 let trendChart = null
 
 const currentTime = ref(new Date().toLocaleString('zh-CN'))
-const selectedTimeRange = ref('today')
+
+const onlineCount = computed(() => {
+  return workshopDevices.value.filter(d => d.status === 'online').length || 0
+})
+
+const offlineCount = computed(() => {
+  return workshopDevices.value.filter(d => d.status === 'offline').length || 0
+})
+
+const alarmCount = computed(() => {
+  return workshopDevices.value.filter(d => d.status === 'error' || d.status === 'warning' ).length || 0
+})
 
 const systemInfo = ref({
   version: 'v2.1.0',
@@ -320,16 +331,15 @@ const showDigitalBoard = ref(true)
           <p class="sub-title">Smart Equipment Monitoring Center | {{ currentTime }}</p>
         </div>
         <div class="header-controls">
-          <a-select v-model:value="selectedTimeRange" style="width: 100px">
-            <a-select-option value="today">今日</a-select-option>
-            <a-select-option value="week">本周</a-select-option>
-            <a-select-option value="month">本月</a-select-option>
-          </a-select>
-          <a-button  @click="showDigitalBoard = true">3D</a-button>
+
+          <a-statistic title="设备总数" :value="totalDevices" :value-style="{ color: '#667eea', fontSize: '16px' }" />
+          <a-statistic title="在线" :value="onlineCount" :value-style="{ color: '#71ea66', fontSize: '16px' }" />
+          <a-statistic title="离线" :value="offlineCount" :value-style="{ color: '#9a9a9b', fontSize: '16px' }" />
+          <a-statistic title="报警" :value="alarmCount" :value-style="{ color: '#ef0404', fontSize: '16px' }" />
+
           <a-button @click="handleRefresh" size="small">🔄 刷新</a-button>
-          <div class="device-count">
-            <a-statistic title="设备总数" :value="totalDevices" :value-style="{ color: '#667eea', fontSize: '16px' }" />
-          </div>
+          <a-button  @click="showDigitalBoard = true">3D</a-button>
+
         </div>
       </div>
 

@@ -3,15 +3,17 @@ import {ref} from 'vue'
 import {message} from "ant-design-vue";
 
 export const boardStore =  defineStore('board', () => {
-    let board = ref([])
-    let boardLoading = ref(false)
-    let boardError = ref(null)
+    const board = ref([])
+    const boardLoading = ref(false)
+    const boardError = ref(null)
 
-    let abnormalDevices = ref([])
-    let workshopDevices = ref([])
-    let faultTableData = ref([])
+    const abnormalDevices = ref([])
+    const workshopDevices = ref([])
+    const faultTableData = ref([])
 
-    let keyMetrics = ref({
+    const deviceHistory = ref([])
+
+    const keyMetrics = ref({
         power:'',
         activeAlarms:'',
         dailyProduction:'',
@@ -20,14 +22,14 @@ export const boardStore =  defineStore('board', () => {
         cost:''
     })
 
-    let deviceStatusData = ref({
+    const deviceStatusData = ref({
         online: '',
         offline: '',
         error: '',
         standby: ''
     })
 
-    let trendData = ref([])
+    const trendData = ref([])
 
     async function getTrendData() {
         try {
@@ -66,6 +68,32 @@ export const boardStore =  defineStore('board', () => {
             const result = await response.json()
             if (result.code === 200){
                 abnormalDevices.value = result.data.abnormalDevices
+            }else {
+                message.error('获取异常设备失败')
+            }
+
+        } catch (error) {
+            console.log( error)
+        }
+    }
+
+    async function getDeviceHistoryData(device) {
+        deviceHistory.value = []
+        try {
+            const response = await fetch('/api/board/getDeviceHistory',{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    deviceId:device.id
+
+                })
+            })
+
+            const result = await response.json()
+            if (result.code === 200){
+                deviceHistory.value = result.data.deviceHistory
             }else {
                 message.error('获取异常设备失败')
             }
@@ -130,6 +158,8 @@ export const boardStore =  defineStore('board', () => {
         keyMetrics,
         trendData,
         deviceStatusData,
+        deviceHistory,
+        getDeviceHistoryData,
         getAbnormalDevices,
         getWorkshopDevices,
         getFaultTableData,

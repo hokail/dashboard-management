@@ -8,12 +8,13 @@ import {boardStore} from "../stores/board";
 import {storeToRefs} from "pinia";
 import ReportDispatch from "./ReportDispatch.vue";
 import DigitalBoard from "./DigitalBoard.vue";
+import DeviceHistory from "./deviceHistory/DeviceHistory.vue";
 
 const useBoardState = boardStore()
 
 const {abnormalDevices,workshopDevices,faultTableData,keyMetrics,trendData,deviceStatusData}= storeToRefs(useBoardState)
 
-const {getBoardData} = useBoardState
+const {getBoardData,getDeviceHistoryData} = useBoardState
 
 let ws = ref( null)
 function connectWebSocket() {
@@ -245,7 +246,7 @@ function initTrendChart(){
   trendChart.setOption(option)
 }
 
-const getStatusColor = (status) => {
+function getStatusColor (status){
   const colors = {
     online: '#52c41a',
     offline: '#8c8c8c',
@@ -255,7 +256,7 @@ const getStatusColor = (status) => {
   return colors[status] || '#8c8c8c'
 }
 
-const getStatusText = (status) => {
+function getStatusText(status){
   const texts = {
     online: '运行',
     offline: '离线',
@@ -265,7 +266,7 @@ const getStatusText = (status) => {
   return texts[status] || '未知'
 }
 
-const getPriorityTag = (priority) => {
+function getPriorityTag(priority){
   const config = {
     '高': { color: 'red', text: '高' },
     '中': { color: 'orange', text: '中' },
@@ -274,11 +275,11 @@ const getPriorityTag = (priority) => {
   return config[priority] || { color: 'default', text: priority }
 }
 
-const handleRefresh = () => {
+function handleRefresh(){
   currentTime.value = new Date().toLocaleString('zh-CN')
 }
 
-const getProgressColor = (percent) => {
+function getProgressColor(percent){
   if (percent < 50) return '#52c41a'
   if (percent < 80) return '#faad14'
   return '#ff4d4f'
@@ -295,6 +296,20 @@ function handleFaultTableDataUpdate(records){
     const index = faultTableData.value.findIndex(alarm => alarm.alarmId === item.alarmId)
     faultTableData.value[index] = item
   })
+}
+
+const selectedDevice = ref(null)
+const deviceHistoryVisible = ref(false)
+
+function showDeviceHistoryData(device){
+  selectedDevice.value = device
+  deviceHistoryVisible.value = true
+  getDeviceHistoryData(device)
+}
+
+function closeDeviceHistoryData(){
+  selectedDevice.value = null
+  deviceHistoryVisible.value = false
 }
 
 let timeInterval = null
@@ -345,7 +360,7 @@ watch(workshopDevices,(newData) => {
 
 }, {deep: true})
 
-const showDigitalBoard = ref(true)
+const showDigitalBoard = ref(false)
 </script>
 
 <template>
@@ -440,6 +455,7 @@ const showDigitalBoard = ref(true)
                 :class="device.status"
                 :style="{ gridColumnStart: device.x + 1, gridRowStart: device.y + 1 }"
                 :title="`${device.name} - ${getStatusText(device.status)}`"
+                @dblclick="showDeviceHistoryData(device)"
             >
               <div class="machine-indicator"></div>
               <div class="machine-name">{{ device.name }}</div>
@@ -557,6 +573,9 @@ const showDigitalBoard = ref(true)
   ></DigitalBoard>
   <a-modal v-model:open="dispatchVisible" title="📋 工单派单管理" width="80%" :footer="null" :maskClosable="false">
     <ReportDispatch :alarmList = "faultTableData" @update:faultTableData="handleFaultTableDataUpdate"></ReportDispatch>
+  </a-modal>
+  <a-modal v-model:open="deviceHistoryVisible" title="📋 设备历史数据" width="80%" :footer="null" :maskClosable="false" @cancel="closeDeviceHistoryData">
+    <DeviceHistory  :device="selectedDevice" ></DeviceHistory>
   </a-modal>
 </template>
 

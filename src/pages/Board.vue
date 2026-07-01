@@ -308,7 +308,7 @@ function showDeviceHistoryData(device){
 }
 
 function closeDeviceHistoryData(){
-  selectedDevice.value = null
+  selectedDevice.value = ref({})
   deviceHistoryVisible.value = false
 }
 

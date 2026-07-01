@@ -4,8 +4,9 @@ import { Graph, Shape } from '@antv/x6'
 import {onMounted, defineComponent, toRefs, watch} from "vue";
 import { register, getTeleport } from '@antv/x6-vue-shape'
 import DeviceHistoryNode from "../../../graph/nodes/DeviceHistoryNode.vue";
-import registerDeviceHistoryNode from "../../../graph/nodes/register.js";
+import {registerDeviceHistoryEdge, registerDeviceHistoryNode} from "../../../graph/nodes/register.js";
 
+registerDeviceHistoryEdge()
 registerDeviceHistoryNode()
 
 //getTeleport() — 获取一个特殊的容器组件，它内部会收集所有需要渲染的 Vue 节点
@@ -42,6 +43,17 @@ function init(){
       connectionPoint: 'anchor',
     },
 
+    mousewheel: {
+      enabled: true,              // 开启
+      zoomAtMousePosition: true,  // 以鼠标位置为中心缩放
+      factor: 1.2,                // 缩放步长，默认 1.2
+      minScale: 0.2,              // 最小缩放比
+      maxScale: 3,                // 最大缩放比
+      // modifiers: ['ctrl'],     // 按住 Ctrl
+    },
+    interacting: {
+      nodeMovable: false,   // 禁止节点拖动
+    },
     // 设置画布背景颜色
     background: {
       color: '#ffffff',

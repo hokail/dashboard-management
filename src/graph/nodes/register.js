@@ -1,7 +1,7 @@
 import {register} from "@antv/x6-vue-shape";
 import DeviceHistoryNode from "./DeviceHistoryNode.vue";
-import { Graph, Shape  } from '@antv/x6'
-function registerDeviceHistoryNode(){
+import { Graph  } from '@antv/x6'
+export function registerDeviceHistoryNode(){
     register({
         shape: 'device-history-node',
         width: 200,
@@ -81,47 +81,6 @@ function registerDeviceHistoryNode(){
             },
         },
     })
-    // ✅ 注册一个带默认 label 位置的边
-    Graph.registerEdge('my-edge', {
-        inherit: 'edge',   // 继承内置 edge
-        attrs: {
-            line: {
-                stroke: '#d3d3d3',
-                strokeWidth: 2,
-                targetMarker: 'classic',
-            },
-        },
-        // ★ fromJSON 还原边时，labels 会与 defaultLabel merge
-        defaultLabel: {
-            markup: [
-                {
-                    tagName: 'rect',
-                    selector: 'body',
-                },
-                {
-                    tagName: 'text',
-                    selector: 'label',
-                },
-            ],
-            attrs: {
-                text: {
-                    fill: '#000',
-                    fontSize: 14,
-                    textAnchor: 'middle',
-                    textVerticalAnchor: 'middle',
-                    pointerEvents: 'none',
-                },
-            },
-            position: {
-                distance: 0.5,     // 沿边 50%（可改 0.3 / 100px 等）
-                offset: -18,       // 垂直偏移，负数为上方
-                options: {
-                    keepGradient: false,
-                    ensureLegibility: true,
-                },
-            },
-        },
-    }, true)
     register({
         shape: 'end-node',
         inherit: 'rect', // 继承于 rect 节点
@@ -214,4 +173,44 @@ function registerDeviceHistoryNode(){
         },
     })
 }
-export default registerDeviceHistoryNode;
+
+export function registerDeviceHistoryEdge(){
+    // ✅ 注册一个带默认 label 位置的边
+    Graph.registerEdge('my-edge', {
+        inherit: 'edge',   // 继承内置 edge
+        attrs: {
+            line: {
+                stroke: '#d3d3d3',
+                strokeWidth: 2,
+                targetMarker: 'classic',
+            },
+        },
+        // ★ fromJSON 还原边时，labels 会与 defaultLabel merge
+        defaultLabel: {
+            markup: [
+                {
+                    tagName: 'rect',
+                    selector: 'body',
+                },
+                {
+                    tagName: 'text',
+                    selector: 'label',
+                },
+            ],
+            attrs: {
+                text: {
+                    fill: '#000',
+                    fontSize: 14,
+                    textAnchor: 'middle',
+                    textVerticalAnchor: 'middle',
+                    pointerEvents: 'none',
+                },
+            },
+            position: {
+                distance: 0.5,     // 沿边 50%（可改 0.3 / 100px 等）
+                offset: -18,       // 垂直偏移，负数为上方
+            },
+        },
+    }, true)
+}
+

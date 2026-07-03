@@ -1,14 +1,19 @@
 <script setup>
 //24小时趋势图，关键指标为静态数据
-import {ref, computed, onMounted, onUnmounted, watch, inject} from 'vue'
-import * as echarts from 'echarts'
+import {ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent} from 'vue'
+import echarts from '../plugins/echarts'
 
 import {useWebSocket} from "../websocket/index.js";
 import {boardStore} from "../stores/board";
 import {storeToRefs} from "pinia";
-import ReportDispatch from "./ReportDispatch.vue";
 import DigitalBoard from "./DigitalBoard.vue";
-import DeviceHistory from "./deviceHistory/DeviceHistory.vue";
+
+import {throttle} from "../utils/index.js";
+
+//异步组件
+const DeviceHistory = defineAsyncComponent(() => import("./deviceHistory/DeviceHistory.vue"))
+// const DigitalBoard = defineAsyncComponent(() => import("./DigitalBoard.vue"))
+const ReportDispatch = defineAsyncComponent(() => import("./ReportDispatch.vue"))
 
 const useBoardState = boardStore()
 
@@ -27,8 +32,9 @@ function connectWebSocket() {
 
     ws.value.onMessage((event) => {
       try {
-        console.log('✅ WebSocket 消息获取成功')
-        handleAlarmListUpdate(event)
+        //业场景设备数据推送频率很高，可能每秒几十条消息，如果每条消息都触发 DOM 更新会导致页面卡顿。
+        //用节流把 UI 更新频率控制在每秒2次，用户感知上仍然是实时的，但性能提升了很多。
+        throttle(handleAlarmListUpdate(event), 500)
       } catch (error) {
         console.error('解析消息失败:', error)
       }
@@ -322,8 +328,6 @@ function deviceHistoryModalFullScreen() {
 
 let timeInterval = null
 
-
-
 onMounted(() => {
   connectWebSocket()
 
@@ -331,14 +335,17 @@ onMounted(() => {
   initTrendChart()
 
   getBoardData()
+
   timeInterval = setInterval(() => {
     currentTime.value = new Date().toLocaleString('zh-CN')
   }, 1000)
 
-  window.addEventListener('resize', () => {
+
+  // 监听窗口大小变化，自动调整图表大小,添加节流throttle
+  window.addEventListener('resize', throttle(() => {
     statusChart.resize()
     trendChart.resize()
-  })
+  }),200)
 })
 
 

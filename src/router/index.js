@@ -1,22 +1,16 @@
 import { createWebHistory, createRouter } from 'vue-router'
 
-import Login from "../pages/Login.vue";
-import Home from "../pages/Home.vue";
-import Board from "../pages/Board.vue";
-import ReportDispatch from "../pages/ReportDispatch.vue";
-import DigitalBoard from "../pages/DigitalBoard.vue";
-import Graph from "../pages/deviceHistory/DeviceHistory.vue";
-
 const routes = [
     { path: '/', redirect: '/board' },
-    { path: '/login', component: Login },
-    { path: '/home', component: Home },
-    { path: '/board', component: Board },
-    { path: '/reportDispatch', component: ReportDispatch },
-    { path: '/digitalBoard', component: DigitalBoard },
-    { path: '/graph', component: Graph },
+    { path: '/login', component: () => import('../pages/Login.vue') },
+    { path: '/home', component: () => import('../pages/Home.vue') },
+    { path: '/board', component: () => import('../pages/Board.vue') },
+    { path: '/reportDispatch', component: () => import('../pages/ReportDispatch.vue') },
+    { path: '/digitalBoard', component: () => import('../pages/DigitalBoard.vue') },
+    { path: '/graph', component: () => import('../pages/deviceHistory/DeviceHistory.vue') },
 ]
 
+// 创建路由实例
 const router = createRouter({
     history: createWebHistory(),
     routes,

@@ -25,3 +25,38 @@ export function isInRange(target, start, end) {
         (target.isBefore(end) || target.isSame(end))
     )
 }
+
+//防抖
+export function debounce(fn, delay){
+    let timer = null
+    return function (){
+        if(!timer){
+            fn.apply(this, arguments)
+        }
+        clearTimeout(timer)
+        timer = setTimeout(()=>{
+            fn.apply(this, arguments)
+
+            // 重置timer,否则之后timer不为null,不会进入立即执行的步骤
+            timer = null
+        },delay)
+
+    }
+}
+
+//节流
+export function throttle(fn, delay){
+    let timer = null
+    return function (){
+        if(timer){
+            return
+        }
+        fn.apply(this, arguments)
+        timer = setTimeout(()=>{
+
+            // clearTimeout(timer)只是阻止定时器的执行，但timer依然存在不为null
+            // 重置timer,否则之后timer不为null
+            timer = null
+        },delay)
+    }
+}

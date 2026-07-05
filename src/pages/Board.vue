@@ -22,6 +22,8 @@ const {abnormalDevices,workshopDevices,faultTableData,keyMetrics,trendData,devic
 const {getBoardData,getDeviceHistoryData} = useBoardState
 
 let ws = ref( null)
+
+const throttledAlarmUpdate = throttle(handleAlarmListUpdate, 500)
 function connectWebSocket() {
   if( !ws.value){
     ws.value = useWebSocket()
@@ -34,7 +36,7 @@ function connectWebSocket() {
       try {
         //业场景设备数据推送频率很高，可能每秒几十条消息，如果每条消息都触发 DOM 更新会导致页面卡顿。
         //用节流把 UI 更新频率控制在每秒2次，用户感知上仍然是实时的，但性能提升了很多。
-        throttle(handleAlarmListUpdate(event), 500)
+        throttledAlarmUpdate(event)
       } catch (error) {
         console.error('解析消息失败:', error)
       }
@@ -327,6 +329,8 @@ function deviceHistoryModalFullScreen() {
 }
 
 let timeInterval = null
+// 节流处理函数保存为外部变量，方便清除监听
+let throttledResizeHandler = null
 
 onMounted(() => {
   connectWebSocket()
@@ -340,12 +344,13 @@ onMounted(() => {
     currentTime.value = new Date().toLocaleString('zh-CN')
   }, 1000)
 
-
-  // 监听窗口大小变化，自动调整图表大小,添加节流throttle
-  window.addEventListener('resize', throttle(() => {
+  const handleResize = () => {
     statusChart.resize()
     trendChart.resize()
-  }),200)
+  }
+  throttledResizeHandler = throttle(handleResize, 200)
+  // 监听窗口大小变化，自动调整图表大小,添加节流throttle
+  window.addEventListener('resize', throttledResizeHandler)
 })
 
 
@@ -361,6 +366,10 @@ onUnmounted(() => {
 
   if (timeInterval) {
     clearInterval(timeInterval)
+  }
+  if (throttledResizeHandler) {
+    window.removeEventListener('resize', throttledResizeHandler)
+    throttledResizeHandler = null
   }
 })
 

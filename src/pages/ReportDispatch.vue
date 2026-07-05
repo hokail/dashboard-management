@@ -218,47 +218,10 @@ function getStatusConfig(dispatchStatus) {
   return config[dispatchStatus] || { color: 'red', text: '未处理' }
 }
 
-// function dispatchAlarmListUpdate(event){
-//   console.log('----------------dispatch')
-//   try {
-//     const message = JSON.parse(event.data)
-//
-//     if (message.type === 'device-status') {
-//       const updates = Array.isArray(message.data) ? message.data : [message.data]
-//
-//       updates.forEach(update => {
-//
-//         const indexFault = alarmList.value.findIndex(d => d.id === update.id)
-//         if(update.status !== 'online'){
-//           if (indexFault === -1) {
-//             alarmList.value.push({
-//               ...update,
-//               alarmId: alarmList.length + 1,
-//               lastUpdate: Date.now()
-//             })
-//           }
-//         }
-//       })
-//       console.log('设备状态更新成功')
-//     }
-//   } catch (error) {
-//     console.error('解析消息失败:', error)
-//   }
-// }
-
 function getUserName(userId){
   let user = userList.value.find(user => user.value === userId)
   return user ? user.label : userId
 }
-
-onMounted(()=> {
-  // addOnMessage('handleDispatch',dispatchAlarmListUpdate)
-  getUserList()
-})
-
-onUnmounted(()=>{
-  // removeOnMessage('handleDispatch')
-})
 
 </script>
 <template>

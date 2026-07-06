@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onUnmounted, toRefs, watch, computed} from 'vue'
+import {ref, onMounted, onUnmounted, toRefs, watch, computed, onBeforeUnmount} from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import CursorControl from '../three/cursorControl.js'
@@ -175,7 +175,7 @@ onMounted(() => {
   }, 1000)
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   cleanup()
   if (timeInterval) {
     clearInterval(timeInterval)
@@ -186,7 +186,7 @@ onUnmounted(() => {
 })
 
 
-async function init() {
+function init() {
   // 1. 创建场景
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0x0a0e27)
@@ -578,7 +578,7 @@ function getStatusText(status) {
 .digital-board-wrapper {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 

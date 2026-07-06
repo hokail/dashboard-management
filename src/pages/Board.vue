@@ -1,6 +1,6 @@
 <script setup>
 //24小时趋势图，关键指标为静态数据
-import {ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent} from 'vue'
+import {ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent, onBeforeUnmount} from 'vue'
 import echarts from '../plugins/echarts'
 
 import {useWebSocket} from "../websocket/index.js";
@@ -36,7 +36,10 @@ function connectWebSocket() {
       try {
         //业场景设备数据推送频率很高，可能每秒几十条消息，如果每条消息都触发 DOM 更新会导致页面卡顿。
         //用节流把 UI 更新频率控制在每秒2次，用户感知上仍然是实时的，但性能提升了很多。
-        throttledAlarmUpdate(event)
+        // throttledAlarmUpdate(event)
+        
+        handleAlarmListUpdate(event)
+
       } catch (error) {
         console.error('解析消息失败:', error)
       }
@@ -154,61 +157,60 @@ const totalDevices = computed(() => {
 })
 
 function initStatusChart() {
-  statusChart = echarts.init(statusChartRef.value)
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c}台 ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left',
-      top: 'middle',
-      textStyle: {
+  const statusChartOption = {
+  tooltip: {
+    trigger: 'item',
+    formatter: '{b}: {c}台 ({d}%)'
+  },
+  legend: {
+    orient: 'vertical',
+    left: 'left',
+    top: 'middle',
+    textStyle: {
+      fontSize: 11,
+      color: '#000'
+    }
+  },
+  series: [
+    {
+      name: '设备状态',
+      type: 'pie',
+      radius: ['35%', '65%'],
+      center: ['55%', '50%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 8,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: true,
+        formatter: '{b}\n{c}',
         fontSize: 11,
         color: '#000'
-      }
-    },
-    series: [
-      {
-        name: '设备状态',
-        type: 'pie',
-        radius: ['35%', '65%'],
-        center: ['55%', '50%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 8,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
+      },
+      emphasis: {
         label: {
           show: true,
-          formatter: '{b}\n{c}',
-          fontSize: 11,
-          color: '#000'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 12,
-            fontWeight: 'bold'
-          }
-        },
-        data: [
-          { value: deviceStatusData.value.online, name: '在线', itemStyle: { color: '#52c41a' } },
-          { value: deviceStatusData.value.offline, name: '离线', itemStyle: { color: '#8c8c8c' } },
-          { value: deviceStatusData.value.error, name: '故障', itemStyle: { color: '#ff4d4f' } },
-          { value: deviceStatusData.value.warning, name: '警告', itemStyle: { color: '#faad14' } }
-        ]
-      }
-    ]
-  }
-  statusChart.setOption(option)
+          fontSize: 12,
+          fontWeight: 'bold'
+        }
+      },
+      data: [
+        { value: deviceStatusData.value.online, name: '在线', itemStyle: { color: '#52c41a' } },
+        { value: deviceStatusData.value.offline, name: '离线', itemStyle: { color: '#8c8c8c' } },
+        { value: deviceStatusData.value.error, name: '故障', itemStyle: { color: '#ff4d4f' } },
+        { value: deviceStatusData.value.warning, name: '警告', itemStyle: { color: '#faad14' } }
+      ]
+    }
+  ]
+}
+  statusChart = echarts.init(statusChartRef.value)
+  statusChart.setOption(statusChartOption)
 }
 
 function initTrendChart(){
-  trendChart = echarts.init(trendChartRef.value)
-  const option = {
+  const trendChartOption = {
     tooltip: {
       trigger: 'axis'
     },
@@ -251,7 +253,8 @@ function initTrendChart(){
       }
     ]
   }
-  trendChart.setOption(option)
+  trendChart = echarts.init(trendChartRef.value)
+  trendChart.setOption(trendChartOption)
 }
 
 function getStatusColor (status){
@@ -355,14 +358,16 @@ onMounted(() => {
 
 
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   if( ws.value){
     ws.value.close()
     ws.value = null
   }
 
   statusChart.dispose()
+  statusChart = null
   trendChart.dispose()
+  trendChart = null
 
   if (timeInterval) {
     clearInterval(timeInterval)
@@ -374,155 +379,172 @@ onUnmounted(() => {
 })
 
 watch( trendData ,(newData) => {
-  initTrendChart()
+  trendChart.setOption({ series: [{ data: newData }] })
 }, { deep: true })
 
 watch(deviceStatusData ,(newData) => {
-  initStatusChart()
-},{deep: true})
+  statusChart.setOption({
+    series: [{
+      data: [
+        { value: newData.online, name: '在线', itemStyle: { color: '#52c41a' } },
+        { value: newData.offline, name: '离线', itemStyle: { color: '#8c8c8c' } },
+        { value: newData.error, name: '故障', itemStyle: { color: '#ff4d4f' } },
+        { value: newData.warning, name: '警告', itemStyle: { color: '#faad14' } }
+      ]
+    }]
+  })
+}, {deep: true})
 
 watch(workshopDevices,(newData) => {
 
 }, {deep: true})
 
 const showDigitalBoard = ref(false)
+
+const boardFullScreen = ref(false)
+
+function handleBoardFullScreen() {
+  boardFullScreen.value = !boardFullScreen.value
+}
 </script>
 
 <template>
-  <div v-show="!showDigitalBoard" class="dashboard-container">
-    <div class="top-section">
-      <div class="header-bar">
-        <div class="title-area">
-          <h1 class="main-title">⚙️ 智能设备监控中心</h1>
-          <p class="sub-title">Smart Equipment Monitoring Center | {{ currentTime }}</p>
+  <div class="board-container" :class="{'board-fullscreen-container': boardFullScreen}">
+    <div v-show="!showDigitalBoard" class="dashboard-container">
+      <div class="top-section">
+        <div class="header-bar">
+          <div class="title-area">
+            <h1 class="main-title">⚙️ 智能设备监控中心</h1>
+            <p class="sub-title">Smart Equipment Monitoring Center | {{ currentTime }}</p>
+          </div>
+          <div class="header-controls">
+
+            <a-statistic title="设备总数" :value="totalDevices" :value-style="{ color: '#667eea', fontSize: '16px' }" />
+            <a-statistic title="在线" :value="onlineCount" :value-style="{ color: '#71ea66', fontSize: '16px' }" />
+            <a-statistic title="离线" :value="offlineCount" :value-style="{ color: '#9a9a9b', fontSize: '16px' }" />
+            <a-statistic title="报警" :value="alarmCount" :value-style="{ color: '#ef0404', fontSize: '16px' }" />
+
+            <a-button @click="handleRefresh" size="small">🔄 刷新</a-button>
+            <a-button  @click="showDigitalBoard = true">3D</a-button>
+            <a-button  @click="handleBoardFullScreen"> {{ boardFullScreen ? '退出全屏' : '全屏' }}</a-button>
+
+          </div>
         </div>
-        <div class="header-controls">
 
-          <a-statistic title="设备总数" :value="totalDevices" :value-style="{ color: '#667eea', fontSize: '16px' }" />
-          <a-statistic title="在线" :value="onlineCount" :value-style="{ color: '#71ea66', fontSize: '16px' }" />
-          <a-statistic title="离线" :value="offlineCount" :value-style="{ color: '#9a9a9b', fontSize: '16px' }" />
-          <a-statistic title="报警" :value="alarmCount" :value-style="{ color: '#ef0404', fontSize: '16px' }" />
-
-          <a-button @click="handleRefresh" size="small">🔄 刷新</a-button>
-          <a-button  @click="showDigitalBoard = true">3D</a-button>
-
-        </div>
-      </div>
-
-      <div class="alarm-scroll-bar">
-        <div class="alarm-scroll-content">
+        <div class="alarm-scroll-bar">
+          <div class="alarm-scroll-content">
           <span v-for="(device, index) in abnormalDevices" :key="index" class="alarm-scroll-item">
             <span class="alarm-dot" :class="device.level"></span>
             <span class="alarm-device-name">{{ device.name }}</span>
             <span class="alarm-separator">|</span>
             <span class="alarm-error">{{ device.errorDesc }}</span>
             <span class="alarm-separator">|</span>
-            <span class="alarm-duration">⏱ {{ device.duration }}</span>
+            <span class="alarm-duration">⏱ {{ device.duration || '' }}</span>
           </span>
-        </div>
-      </div>
-    </div>
-
-    <div class="middle-section">
-      <div class="left-panel">
-        <div class="panel-card chart-panel">
-          <h3 class="panel-title">📊 设备状态分布</h3>
-          <div ref="statusChartRef" class="chart-area"></div>
-        </div>
-
-        <div class="panel-card stats-panel">
-          <h3 class="panel-title">📈 关键指标</h3>
-          <div class="stats-grid">
-            <div class="stat-box">
-              <div class="stat-label">总功率</div>
-              <div class="stat-value">{{ keyMetrics.power }}<span class="unit">kW</span></div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">运行时长</div>
-              <div class="stat-value">{{keyMetrics.operatingHours}}<span class="unit">h</span></div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">今日产量</div>
-              <div class="stat-value success">{{ keyMetrics.dailyProduction }}</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">活跃告警</div>
-              <div class="stat-value danger">{{ keyMetrics.activeAlarms }}</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">平均OEE</div>
-              <div class="stat-value success">{{  keyMetrics.averageOEE }}</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">能耗成本</div>
-              <div class="stat-value">¥{{ keyMetrics.cost }}</div>
-            </div>
           </div>
         </div>
       </div>
 
-      <div class="center-panel">
-        <div class="workshop-container">
-          <div class="workshop-header">
-            <h3 class="workshop-title">🏭 车间A - 设备实时监控</h3>
-            <div class="legend">
-              <span class="legend-item"><span class="legend-dot online"></span>运行</span>
-              <span class="legend-item"><span class="legend-dot error"></span>故障</span>
-              <span class="legend-item"><span class="legend-dot warning"></span>警告</span>
-              <span class="legend-item"><span class="legend-dot offline"></span>离线</span>
-            </div>
+      <div class="middle-section">
+        <div class="left-panel">
+          <div class="panel-card chart-panel">
+            <h3 class="panel-title">📊 设备状态分布</h3>
+            <div ref="statusChartRef" class="chart-area"></div>
           </div>
-          <div class="workshop-floor">
-            <div
-                v-for="device in workshopDevices"
-                :key="device.id"
-                class="machine-unit"
-                :class="device.status"
-                :style="{ gridColumnStart: device.x + 1, gridRowStart: device.y + 1 }"
-                :title="`${device.name} - ${getStatusText(device.status)}`"
-                @dblclick="showDeviceHistoryData(device)"
-            >
-              <div class="machine-indicator"></div>
-              <div class="machine-name">{{ device.name }}</div>
+
+          <div class="panel-card stats-panel">
+            <h3 class="panel-title">📈 关键指标</h3>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-label">总功率</div>
+                <div class="stat-value">{{ keyMetrics.power }}<span class="unit">kW</span></div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">运行时长</div>
+                <div class="stat-value">{{keyMetrics.operatingHours}}<span class="unit">h</span></div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">今日产量</div>
+                <div class="stat-value success">{{ keyMetrics.dailyProduction }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">活跃告警</div>
+                <div class="stat-value danger">{{ keyMetrics.activeAlarms }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">平均OEE</div>
+                <div class="stat-value success">{{  keyMetrics.averageOEE }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">能耗成本</div>
+                <div class="stat-value">¥{{ keyMetrics.cost }}</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="right-panel">
-        <div class="panel-card chart-panel">
-          <h3 class="panel-title">📉 24小时故障趋势</h3>
-          <div ref="trendChartRef" class="chart-area"></div>
+        <div class="center-panel">
+          <div class="workshop-container">
+            <div class="workshop-header">
+              <h3 class="workshop-title">🏭 车间A - 设备实时监控</h3>
+              <div class="legend">
+                <span class="legend-item"><span class="legend-dot online"></span>运行</span>
+                <span class="legend-item"><span class="legend-dot error"></span>故障</span>
+                <span class="legend-item"><span class="legend-dot warning"></span>警告</span>
+                <span class="legend-item"><span class="legend-dot offline"></span>离线</span>
+              </div>
+            </div>
+            <div class="workshop-floor">
+              <div
+                  v-for="device in workshopDevices"
+                  :key="device.id"
+                  class="machine-unit"
+                  :class="device.status"
+                  :style="{ gridColumnStart: device.x + 1, gridRowStart: device.y + 1 }"
+                  :title="`${device.name} - ${getStatusText(device.status)}`"
+                  @dblclick="showDeviceHistoryData(device)"
+              >
+                <div class="machine-indicator"></div>
+                <div class="machine-name">{{ device.name }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="panel-card alert-panel">
-          <h3 class="panel-title">🚨 紧急告警</h3>
-          <div class="alert-list">
-            <div v-for="(device, index) in abnormalDevices.slice(0, 4)" :key="index" class="alert-item">
-              <div class="alert-icon">🔴</div>
-              <div class="alert-content">
-                <div class="alert-title">{{ device.name }}</div>
-                <div class="alert-desc">{{ device.errorDesc }}</div>
-                <div class="alert-time">{{ device.duration }}</div>
+        <div class="right-panel">
+          <div class="panel-card chart-panel">
+            <h3 class="panel-title">📉 24小时故障趋势</h3>
+            <div ref="trendChartRef" class="chart-area"></div>
+          </div>
+
+          <div class="panel-card alert-panel">
+            <h3 class="panel-title">🚨 紧急告警</h3>
+            <div class="alert-list">
+              <div v-for="(device, index) in abnormalDevices.slice(0, 4)" :key="index" class="alert-item">
+                <div class="alert-icon">🔴</div>
+                <div class="alert-content">
+                  <div class="alert-title">{{ device.name }}</div>
+                  <div class="alert-desc">{{ device.errorDesc }}</div>
+                  <div class="alert-time">{{ device.duration }}</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="bottom-section">
-      <div class="table-container">
-        <div class="table-header">
-          <h3 class="table-title">📋 设备故障信息列表</h3>
-          <div class="table-actions">
-            <a-button @click="openDispatchModal" type="primary">派单</a-button>
-            <a-badge :count="faultTableData.length" :overflow-count="99" />
+      <div class="bottom-section">
+        <div class="table-container">
+          <div class="table-header">
+            <h3 class="table-title">📋 设备故障信息列表</h3>
+            <div class="table-actions">
+              <a-button @click="openDispatchModal" type="primary">派单</a-button>
+              <a-badge :count="faultTableData.length" :overflow-count="99" />
+            </div>
+
           </div>
-
-        </div>
-        <a-table
-            :columns="[
+          <a-table
+              :columns="[
             { title: '设备编号', dataIndex: 'id', key: 'deviceId', width: 100 },
             { title: '设备名称', dataIndex: 'name', key: 'deviceName', width: 120 },
             { title: '故障代码', dataIndex: 'errorCode', key: 'errorCode', width: 100 },
@@ -539,87 +561,99 @@ const showDigitalBoard = ref(false)
             },
             { title: '状态', dataIndex: 'status', key: 'status', width: 100 }
           ]"
-            :data-source="faultTableData"
-            :pagination="false"
-            size="small"
-            :scroll="{ y: 250 }"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'priority'">
-              <a-tag v-if="record.status === 'error'" color="red">
-                高
-              </a-tag>
-              <a-tag v-else-if="record.status === 'warning'" color="orange">
-                中
-              </a-tag>
+              :data-source="faultTableData"
+              :pagination="false"
+              size="small"
+              :scroll="{ y: 200 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'priority'">
+                <a-tag v-if="record.status === 'error'" color="red">
+                  高
+                </a-tag>
+                <a-tag v-else-if="record.status === 'warning'" color="orange">
+                  中
+                </a-tag>
+              </template>
+              <template v-if="column.key === 'status'">
+                <a-tag v-if="record.status === 'error'" color="red">
+                  故障
+                </a-tag>
+                <a-tag v-else-if="record.status === 'warning'" color="orange">
+                  警告
+                </a-tag>
+              </template>
             </template>
-            <template v-if="column.key === 'status'">
-              <a-tag v-if="record.status === 'error'" color="red">
-                故障
-              </a-tag>
-              <a-tag v-else-if="record.status === 'warning'" color="orange">
-                警告
-              </a-tag>
-            </template>
-          </template>
-        </a-table>
-      </div>
-
-      <div class="footer-info">
-        <div class="footer-left">
-          <div class="info-item">
-            <span class="info-label">系统版本:</span>
-            <span class="info-value">{{ systemInfo.version }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">运行时长:</span>
-            <span class="info-value">{{ systemInfo.uptime }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">网络状态:</span>
-            <span class="info-value status-normal">{{ systemInfo.networkStatus }}</span>
-          </div>
+          </a-table>
         </div>
 
-        <div class="footer-right">
-          <div class="time-display">
-            <div class="current-time">{{ currentTime }}</div>
-            <div class="update-hint">数据实时更新中...</div>
+        <div class="footer-info">
+          <div class="footer-left">
+            <div class="info-item">
+              <span class="info-label">系统版本:</span>
+              <span class="info-value">{{ systemInfo.version }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">运行时长:</span>
+              <span class="info-value">{{ systemInfo.uptime }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">网络状态:</span>
+              <span class="info-value status-normal">{{ systemInfo.networkStatus }}</span>
+            </div>
+          </div>
+
+          <div class="footer-right">
+            <div class="time-display">
+              <div class="current-time">{{ currentTime }}</div>
+              <div class="update-hint">数据实时更新中...</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <DigitalBoard
-    v-show="showDigitalBoard"
-    :deviceList="workshopDevices"
-    :updateList="updatesDeviceList"
-    @update:showDigitalBoard="showDigitalBoard = $event"
-  ></DigitalBoard>
-  <a-modal v-model:open="dispatchVisible" title="📋 工单派单管理" width="80%" :footer="null" :maskClosable="false">
-    <ReportDispatch :alarmList = "faultTableData" @update:faultTableData="handleFaultTableDataUpdate"></ReportDispatch>
-  </a-modal>
+    <DigitalBoard
+        v-show="showDigitalBoard"
+        :deviceList="workshopDevices"
+        :updateList="updatesDeviceList"
+        @update:showDigitalBoard="showDigitalBoard = $event"
+    ></DigitalBoard>
+    <a-modal v-model:open="dispatchVisible" title="📋 工单派单管理" width="80%" :footer="null" :maskClosable="false">
+      <ReportDispatch :alarmList = "faultTableData" @update:faultTableData="handleFaultTableDataUpdate"></ReportDispatch>
+    </a-modal>
 
-  <!-- 对话框开启 destroyOnClose，保证关闭对话框后，销毁画布-->
-  <a-modal
-      class="device-history-modal"
-      v-model:open="deviceHistoryVisible"
-      title="📋 设备历史数据" width="80%"
-      :footer="null"
-      destroyOnClose
-      :maskClosable="false"
-      @cancel="closeDeviceHistoryData"
-      :closable="!deviceHistoryModalIsFull "
-  >
-    <DeviceHistory  :device="selectedDevice" ref="deviceHistory"  @fullSreen="deviceHistoryModalFullScreen"></DeviceHistory>
-  </a-modal>
+    <!-- 对话框开启 destroyOnClose，保证关闭对话框后，销毁画布-->
+    <a-modal
+        class="device-history-modal"
+        v-model:open="deviceHistoryVisible"
+        title="📋 设备历史数据" width="80%"
+        :footer="null"
+        destroyOnClose
+        :maskClosable="false"
+        @cancel="closeDeviceHistoryData"
+        :closable="!deviceHistoryModalIsFull "
+    >
+      <DeviceHistory  :device="selectedDevice" ref="deviceHistory"  @fullSreen="deviceHistoryModalFullScreen"></DeviceHistory>
+    </a-modal>
+  </div>
+
 </template>
 
 <style scoped>
-.dashboard-container {
-  height: 100vh;
+.board-container{
+  height: 100%;
+}
+.board-fullscreen-container{
+  position: fixed;
+  top:0;
+  left: 0;
   width: 100vw;
+  height: 100vh;
+}
+.dashboard-container {
   overflow: hidden;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 50%, #f0f2f5 100%);
   display: flex;
   flex-direction: column;

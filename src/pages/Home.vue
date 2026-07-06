@@ -1,23 +1,16 @@
 <script setup>
 import { ref } from 'vue'
+import router from "../router/index.js";
 
 const collapsed = ref(false)
 
 const menuItems = [
-  { key: 'dashboard', icon: '📊', label: '数据概览' },
-  { key: 'users', icon: '👥', label: '用户管理' },
-  { key: 'data', icon: '📁', label: '数据管理' },
-  { key: 'analysis', icon: '📈', label: '数据分析' },
-  { key: 'reports', icon: '📋', label: '报表中心' },
-  { key: 'settings', icon: '⚙️', label: '系统设置' }
+  { key: 'board', icon: '📊', label: '数据概览' },
+  { key: 'alarmHistoryList', icon: '📋', label: '警报历史' },
 ]
 
-const selectedKey = ref('dashboard')
+const selectedKey = ref('board')
 
-const handleMenuClick = (key) => {
-  selectedKey.value = key
-  console.log('切换到:', key)
-}
 
 const toggleCollapse = () => {
   collapsed.value = !collapsed.value
@@ -34,16 +27,17 @@ const toggleCollapse = () => {
       </div>
 
       <nav class="menu">
-        <div
+        <router-link
             v-for="item in menuItems"
             :key="item.key"
             class="menu-item"
             :class="{ active: selectedKey === item.key }"
-            @click="handleMenuClick(item.key)"
+           :to="`/${item.key}`"
+            @click="selectedKey = item.key"
         >
           <span class="menu-icon">{{ item.icon }}</span>
           <span v-if="!collapsed" class="menu-label">{{ item.label }}</span>
-        </div>
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
@@ -82,51 +76,7 @@ const toggleCollapse = () => {
 
       <!-- 主要内容展示区域 -->
       <div class="content">
-        <div class="welcome-card">
-          <h2>欢迎使用数据管理平台</h2>
-          <p>这是一个现代化的数据管理系统，帮助您高效管理和分析数据。</p>
-        </div>
-
-        <div class="stats-grid">
-          <a-card title="总用户数" class="stat-card">
-            <div class="stat-value">1,234</div>
-            <div class="stat-change positive">↑ 12.5%</div>
-          </a-card>
-
-          <a-card title="今日访问" class="stat-card">
-            <div class="stat-value">567</div>
-            <div class="stat-change positive">↑ 8.3%</div>
-          </a-card>
-
-          <a-card title="数据总量" class="stat-card">
-            <div class="stat-value">89.5K</div>
-            <div class="stat-change positive">↑ 15.2%</div>
-          </a-card>
-
-          <a-card title="系统状态" class="stat-card">
-            <div class="stat-value">正常</div>
-            <div class="stat-status">● 运行中</div>
-          </a-card>
-        </div>
-
-        <a-card title="最近活动" class="activity-card">
-          <a-table
-              :columns="[
-              { title: '时间', dataIndex: 'time', key: 'time' },
-              { title: '操作', dataIndex: 'action', key: 'action' },
-              { title: '用户', dataIndex: 'user', key: 'user' },
-              { title: '状态', dataIndex: 'status', key: 'status' }
-            ]"
-              :data-source="[
-              { key: '1', time: '2026-05-27 10:30', action: '数据导入', user: '张三', status: '成功' },
-              { key: '2', time: '2026-05-27 09:15', action: '用户创建', user: '李四', status: '成功' },
-              { key: '3', time: '2026-05-27 08:45', action: '报表生成', user: '王五', status: '处理中' },
-              { key: '4', time: '2026-05-26 16:20', action: '数据导出', user: '赵六', status: '成功' }
-            ]"
-              :pagination="false"
-              size="small"
-          />
-        </a-card>
+        <router-view></router-view>
       </div>
     </main>
   </div>
@@ -135,7 +85,7 @@ const toggleCollapse = () => {
 <style scoped>
 .layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   background: #f0f2f5;
 }
 
@@ -178,6 +128,7 @@ const toggleCollapse = () => {
   cursor: pointer;
   transition: all 0.3s;
   color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
 }
 
 .menu-item:hover {
@@ -224,6 +175,7 @@ const toggleCollapse = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
 }
 
 .header {
@@ -251,8 +203,9 @@ const toggleCollapse = () => {
 
 .content {
   flex: 1;
-  padding: 24px;
+  padding: 0;
   overflow-y: auto;
+  height: calc(100% - 64px);
 }
 
 .welcome-card {

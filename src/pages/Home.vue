@@ -1,6 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import router from "../router/index.js";
+import { useRouter } from 'vue-router'
+import {permissionStore} from "../stores/permission.js";
+import {storeToRefs} from "pinia";
+
+const usePermissionStore = permissionStore()
+const {userRole} = storeToRefs(usePermissionStore)
+const {getUserPermission,clearPermission} = usePermissionStore
 
 const collapsed = ref(false)
 
@@ -15,6 +21,15 @@ const selectedKey = ref('board')
 const toggleCollapse = () => {
   collapsed.value = !collapsed.value
 }
+
+const router = useRouter()
+
+function logout(){
+  clearPermission()
+  localStorage.removeItem('board-username')
+  router.push('/login')
+}
+
 </script>
 
 <template>
@@ -60,14 +75,12 @@ const toggleCollapse = () => {
           <a-button type="text">🔔</a-button>
           <a-dropdown>
             <a-button type="text">
-              👤 管理员
+              👤 {{ userRole ==='admin' ? '管理员':'用户' }}
             </a-button>
             <template #overlay>
               <a-menu>
-                <a-menu-item>个人中心</a-menu-item>
-                <a-menu-item>修改密码</a-menu-item>
                 <a-menu-divider />
-                <a-menu-item>退出登录</a-menu-item>
+                <a-menu-item @click="logout">退出登录</a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>

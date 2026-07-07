@@ -3,13 +3,20 @@
 import { message } from 'ant-design-vue'
 
 import {userStore} from "../stores/login.js"
-import {storeToRefs} from "pinia"
+
+import {useRouter} from "vue-router";
+import {permissionStore} from "../stores/permission.js";
+import {storeToRefs} from "pinia";
+
+const usePermissionStore = permissionStore()
+const {userRole} = storeToRefs(usePermissionStore)
+const {getUserPermission,clearPermission} = usePermissionStore
 
 const usUserStore = userStore()
 
+const {userForm,loginLoading} = storeToRefs(usUserStore)
+const {login} = usUserStore
 
-let {userForm,loginLoading} = storeToRefs(usUserStore)
-let {login} = usUserStore
 
 const handleLogin = async () => {
   if (!userForm.value.username) {

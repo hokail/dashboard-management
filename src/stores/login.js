@@ -31,8 +31,8 @@ export const userStore =  defineStore('login', () => {
             if (result.code === 200) {
                 isLogin.value = true
                 message.success('登录成功')
-                localStorage.setItem('token', result.data.token)
-                router.push('/home')
+                localStorage.setItem('board-username', userForm.value.username)
+                router.push('/board')
             }else if(result.code === 401) {
                 message.error('用户名或密码错误')
             }

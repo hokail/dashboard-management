@@ -4,7 +4,7 @@ export default [
         method: 'post',
         response: ({ body }) => {
             const { username, password } = body
-            if (username === 'admin' && password === '12345') {
+            if (username === 'admin' && password === 'admin') {
                 return {
                     code: 200,
                     message: '登录成功',
@@ -83,5 +83,35 @@ export default [
             }
         },
 
+    },
+    {
+        url: '/api/user/getUserInfo',
+        method: 'post',
+        response: ({ body }) => {
+            const { username } = body
+            if (username === 'admin') {
+                return {
+                    code: 200,
+                    message: '登录成功',
+                    data: {
+                        role: 'admin'
+                    }
+                }
+            } else if(username !== 'admin'){
+                return {
+                    code: 200,
+                    message: '登录成功',
+                    data: {
+                        role: 'user'
+                    }
+                }
+            }else {
+                return {
+                    code: 401,
+                    message: '用户名或密码错误',
+                    data: null
+                }
+            }
+        }
     }
 ]

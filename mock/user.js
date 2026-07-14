@@ -11,10 +11,18 @@ export default [
                     data: {
                         token: 'mock-token-' + Date.now(),
                         username: 'admin',
-                        role: 'admin'
                     }
                 }
-            } else {
+            } else if (username === 'zhang' && password === 'zhang') {
+                return {
+                    code: 200,
+                    message: '登录成功',
+                    data: {
+                        token: 'mock-token-' + Date.now(),
+                        username: 'zhang',
+                    }
+                }
+            }{
                 return {
                     code: 401,
                     message: '用户名或密码错误',

@@ -6,6 +6,7 @@ import {createPinia} from "pinia";
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import 'dayjs/locale/zh-cn'
 import Antd from 'ant-design-vue'
+import directive from './directive/index.js'
 
 const pinia = createPinia()
 
@@ -17,4 +18,6 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_WEBSOCKET_MOCK === 'true') {
         console.log('🎭 Mock WebSocket 服务已启用')
     })
 }
-createApp(App).use(router).use(pinia).use(Antd, { locale: zhCN }).mount('#app')
+
+const app = createApp(App)
+app.use(router).use(pinia).use(directive).use(Antd, { locale: zhCN }).mount('#app')

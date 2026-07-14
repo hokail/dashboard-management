@@ -3,8 +3,6 @@ import {permissionStore} from "../stores/permission.js";
 import {storeToRefs} from "pinia";
 
 
-
-
 const routes = [
     { path: '/', redirect: '/board' },
     { path: '/login', name:'login',component: () => import('../pages/Login.vue') },

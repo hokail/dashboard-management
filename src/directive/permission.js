@@ -1,10 +1,17 @@
-app.directive('permission',{
+import {permissionStore} from "../stores/permission.js";
+import {storeToRefs} from "pinia";
+
+export const permission = {
     mounted(el, binding) {
-        const permissions = store.getUserPermissions // ['user:add', 'user:delete']
+
+        // store的使用写在内部
+        const usePermissionStore = permissionStore()
+        const {userRole} = storeToRefs(usePermissionStore)
+
         const requiredPermission = binding.value     // 'user:add'
 
-        if (!permissions.includes(requiredPermission)) {
+        if (requiredPermission && !requiredPermission.includes(userRole.value)) {
             el.parentNode?.removeChild(el)
         }
-    },
-})
+    }
+}

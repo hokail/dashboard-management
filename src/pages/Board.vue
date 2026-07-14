@@ -538,7 +538,7 @@ function handleBoardFullScreen() {
           <div class="table-header">
             <h3 class="table-title">📋 设备故障信息列表</h3>
             <div class="table-actions">
-              <a-button v-permission="['admin','user']" @click="openDispatchModal" type="primary">派单</a-button>
+              <a-button v-permission="['admin']" @click="openDispatchModal" type="primary">派单</a-button>
               <a-badge :count="faultTableData.length" :overflow-count="99" />
             </div>
 

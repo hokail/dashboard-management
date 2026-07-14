@@ -20,4 +20,5 @@ export default defineConfig({
       enable: true,
     }),
   ],
+  base: '/dashboard/'
 })

@@ -56,4 +56,5 @@ const goHome = () => {
   color: #8c8c8c;
   margin-bottom: 32px;
 }
+
 </style>

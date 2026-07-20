@@ -13,13 +13,13 @@ export default [
                         username: 'admin',
                     }
                 }
-            } else if (username === 'zhang' && password === 'zhang') {
+            } else if (username === 'user' && password === 'user') {
                 return {
                     code: 200,
                     message: '登录成功',
                     data: {
                         token: 'mock-token-' + Date.now(),
-                        username: 'zhang',
+                        username: 'user',
                     }
                 }
             }{
@@ -62,30 +62,10 @@ export default [
                             roles: ['admin']
                         },
                         {
-                            userid: 'zhangsan',
-                            username: '张三',
+                            userid: 'user',
+                            username: '用户',
                             roles: ['user']
                         },
-                        {
-                            userid: 'lisi',
-                            username: '李四',
-                            roles: ['editor']
-                        },
-                        {
-                            userid: 'wangwu',
-                            username: '王五',
-                            roles: ['user']
-                        },
-                        {
-                            userid: 'zhaoliu',
-                            username: '赵六',
-                            roles: ['viewer']
-                        },
-                        {
-                            userid: 'liqi',
-                            username: '孙七',
-                            roles: ['editor']
-                        }
                     ]
                 }
             }
@@ -105,7 +85,7 @@ export default [
                         role: 'admin'
                     }
                 }
-            } else if(username !== 'admin'){
+            } else if(username === 'user'){
                 return {
                     code: 200,
                     message: '登录成功',

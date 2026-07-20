@@ -4,13 +4,10 @@ import { message } from 'ant-design-vue'
 
 import {userStore} from "../stores/login.js"
 
-import {useRouter} from "vue-router";
 import {permissionStore} from "../stores/permission.js";
 import {storeToRefs} from "pinia";
 
 const usePermissionStore = permissionStore()
-const {userRole} = storeToRefs(usePermissionStore)
-const {getUserPermission,clearPermission} = usePermissionStore
 
 const usUserStore = userStore()
 
@@ -55,7 +52,7 @@ const handleLogin = async () => {
             size="large"
           >
             <template #prefix>
-              <span class="icon">👤</span>
+              <span class="icon"></span>
             </template>
           </a-input>
         </a-form-item>
@@ -67,7 +64,7 @@ const handleLogin = async () => {
             size="large"
           >
             <template #prefix>
-              <span class="icon">🔒</span>
+              <span class="icon"></span>
             </template>
           </a-input-password>
         </a-form-item>
@@ -84,11 +81,21 @@ const handleLogin = async () => {
           </a-button>
         </a-form-item>
       </a-form>
+      <a-row type="flex" justify="center">
+       <i class="login-tip">管理员：admin/admin</i>
+      </a-row>
+      <a-row type="flex" justify="center">
+        <i class="login-tip">普通用户：user/user</i>
+      </a-row>
     </div>
   </div>
 </template>
 
 <style scoped>
+.login-tip {
+  font-size: 14px;
+  color: #bcbcbc;
+}
 .login-container {
   min-height: 100vh;
   min-width: 100vw;
